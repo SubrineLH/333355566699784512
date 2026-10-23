@@ -106,7 +106,7 @@ struct ChatComposerAttachment: View {
                             .font(.caption2).foregroundColor(.secondary)
                     }.frame(maxWidth: 140, alignment: .leading)
                 }.padding(.horizontal, 12).padding(.trailing, 20).frame(height: 72)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(.primary.opacity(0.07)))
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.07)))
             }
         }
         .compatOverlay(alignment: .topTrailing) {

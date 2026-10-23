@@ -5,7 +5,7 @@ import Foundation
 nonisolated enum RuntimeLocalizedCopy {
     static func text(_ fallback: String, metadata: JSONValue, field: String = "labelKey", locale: Locale = .current, bundle: Bundle = .main) -> String {
         guard let key = metadata["i18n"]?[field]?.stringValue else { return fallback }
-        let translated = L(String.LocalizationValue(key), bundle: bundle, locale: locale)
+        let translated = compatLocalized(key, bundle: bundle, locale: locale)
         return translated == key ? fallback : translated
     }
 }

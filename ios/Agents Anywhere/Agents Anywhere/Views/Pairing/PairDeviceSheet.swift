@@ -228,7 +228,7 @@ struct PairDeviceSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             Text(command).font(Font.system(.footnote, design: .monospaced)).compatTextSelection()
                 .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(UIColor.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
+                .compatBackground(Color(UIColor.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
             AppGlassButton(copied ? L("已复制") : L("复制命令"), systemImage: copied ? "checkmark" : "doc.on.doc") {
                 UIPasteboard.general.string = command; copied = true
             }

@@ -20,6 +20,6 @@ private struct AppSheetPresentation: ViewModifier {
     let size: AppSheetSize
 
     func body(content: Content) -> some View {
-        content.presentationDragIndicator(.visible)
+        content
     }
 }

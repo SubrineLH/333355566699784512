@@ -13,7 +13,7 @@ struct SessionDetailsSheet: View {
         CompatPlainNavigationStack {
             List {
                 if let meta = chat.session.metadata {
-                    Section(L("会话")) {
+                    Section(header: Text(L("会话"))) {
                         row(L("标题"), meta.title ?? L("未命名会话"))
                         row(L("设备"), meta.connectorId)
                         row(L("Agent"), meta.runtimeName ?? meta.runtime)
@@ -22,7 +22,7 @@ struct SessionDetailsSheet: View {
                         row(L("dashboard.session.workspace"), meta.cwd ?? L("无"))
                         row(L("接管"), meta.takeover ? L("已开启") : L("只读"))
                     }
-                    Section(L("标识与时间线")) {
+                    Section(header: Text(L("标识与时间线"))) {
                         row(L("Session ID"), meta.id)
                         row(L("外部 Session ID"), meta.externalSessionId ?? L("无"))
                         row(L("已加载条目"), String(chat.session.timeline.count))

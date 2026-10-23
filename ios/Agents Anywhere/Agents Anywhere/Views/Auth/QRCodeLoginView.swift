@@ -99,7 +99,7 @@ private struct QRScanStepView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
-                        .background(AppTheme.glassScrim(colorScheme), in: Capsule())
+                        .compatBackground(AppTheme.glassScrim(colorScheme), in: Capsule())
                         .compatGlassEffect(.regular, in: .capsule)
                         .padding(.bottom, 18)
                 }
@@ -168,7 +168,7 @@ private struct QRConfirmStepView: View {
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(AppTheme.groupedFill(colorScheme), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .compatBackground(AppTheme.groupedFill(colorScheme), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .compatGlassEffect(.regular, in: .rect(cornerRadius: 28, style: .continuous))
 
                 AuthPrimaryButton(

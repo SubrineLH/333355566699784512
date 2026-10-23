@@ -36,6 +36,13 @@ enum CompatTableAlignment: Equatable {
 
 // MARK: - Parser
 
+/// Marks inline-code runs while the bold/italic passes run, so emphasis inside
+/// a code span is never rewritten. NSAttributedString has no reserved key for
+/// this, so the marker is an app-owned attribute.
+private extension NSAttributedString.Key {
+    static let markedClauseSegment = NSAttributedString.Key("aa.markdown.inlineCode")
+}
+
 nonisolated enum CompatMarkdownParser {
     static func parse(_ text: String) -> [CompatMarkdownBlock] {
         var blocks: [CompatMarkdownBlock] = []

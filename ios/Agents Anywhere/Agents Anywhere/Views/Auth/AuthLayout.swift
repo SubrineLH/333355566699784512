@@ -43,7 +43,7 @@ struct AuthScreen<Content: View>: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if showsCancel { SheetCloseToolbar(action: onCancel) } else { EmptyView() }
+                if showsCancel { SheetCloseToolbar.Standalone(action: onCancel) } else { EmptyView() }
             }
         }
     }

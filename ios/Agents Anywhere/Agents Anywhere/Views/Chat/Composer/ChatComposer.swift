@@ -56,7 +56,7 @@ struct ChatComposer: View {
                 .compatContentTransition(.interpolate)
                 .foregroundColor(AppTheme.primaryControlForeground(colorScheme))
                 .frame(width: controls.sendDiameter, height: controls.sendDiameter)
-                .background(AppTheme.primaryControlBackground(colorScheme).opacity((isStreaming ? canStop : canSend && draft.canAttemptSend) && !isBusy ? 1 : 0.42), in: Circle())
+                .compatBackground(AppTheme.primaryControlBackground(colorScheme).opacity((isStreaming ? canStop : canSend && draft.canAttemptSend) && !isBusy ? 1 : 0.42), in: Circle())
                 .frame(width: controls.touchTarget, height: controls.touchTarget)
                 .contentShape(Circle())
         }

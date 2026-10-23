@@ -24,6 +24,20 @@ struct SheetCloseToolbar: ToolbarContent {
     }
 }
 
+extension SheetCloseToolbar {
+    /// The toolbar builder in `AuthLayout` needs a `View`, and `ToolbarContent`
+    /// only fits inside `.toolbar { }` on iOS 16. This wrapper keeps the same
+    /// button while letting the call site stay a plain view.
+    struct Standalone: View {
+        var disabled = false
+        let action: () -> Void
+
+        var body: some View {
+            SheetCloseButton(action: action).disabled(disabled)
+        }
+    }
+}
+
 struct SheetEditorToolbar: ToolbarContent {
     var saveTitle = L("Save")
     var isWorking = false

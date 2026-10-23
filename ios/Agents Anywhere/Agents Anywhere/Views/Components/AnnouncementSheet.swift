@@ -49,7 +49,7 @@ private struct AnnouncementGate: ViewModifier {
         guard scenePhase == .active, let target else { return }
         if pendingServer != target { pending = nil; pendingServer = nil; lastCheck = nil }
         if let lastCheck, Date().timeIntervalSince(lastCheck) < 60 { return }
-        lastCheck = .now
+        lastCheck = Date()
         do {
             let current = try await APIClient(serverURL: target).announcement()
             guard !Task.isCancelled else { lastCheck = nil; return }

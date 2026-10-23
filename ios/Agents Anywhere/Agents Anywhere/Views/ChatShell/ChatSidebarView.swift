@@ -339,7 +339,7 @@ private struct ChatSidebarDeviceRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 10)
             .frame(minHeight: 42)
-            .background(isSelected ? AppTheme.sidebarSelectionFill(colorScheme) : .clear, in: RoundedRectangle(cornerRadius: 9))
+            .compatBackground(isSelected ? AppTheme.sidebarSelectionFill(colorScheme) : .clear, in: RoundedRectangle(cornerRadius: 9))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

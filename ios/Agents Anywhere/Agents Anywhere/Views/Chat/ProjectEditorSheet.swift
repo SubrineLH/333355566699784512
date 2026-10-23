@@ -30,7 +30,7 @@ struct ProjectEditorSheet: View {
     var body: some View {
         CompatPlainNavigationStack {
             Form {
-                Section(L("运行设备")) {
+                Section(header: Text(L("运行设备"))) {
                     if draft.original != nil {
                         CompatLabeledRow(L("设备"), value: device?.name ?? draft.connectorID)
                     } else {

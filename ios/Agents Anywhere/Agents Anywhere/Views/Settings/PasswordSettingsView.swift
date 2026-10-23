@@ -8,7 +8,7 @@ struct PasswordSettingsView: View {
 
     var body: some View {
         Form {
-            Section(L("New password")) {
+            Section(header: Text(L("New password"))) {
                 SecureField(L("New password"), text: $draft.password)
                     .textContentType(.newPassword)
             }

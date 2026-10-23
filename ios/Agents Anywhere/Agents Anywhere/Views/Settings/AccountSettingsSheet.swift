@@ -30,7 +30,7 @@ struct AccountSettingsSheet: View {
                         }.padding(.vertical, 12)
                     }.compatListRowSeparator(.hidden)
 
-                    Section(L("Account")) {
+                    Section(header: Text(L("Account"))) {
                         NavigationLink { AccountIdentitySettingsView(mode: .nickname, draft: $drafts.nickname) } label: {
                             SettingsRow(title: L("Nickname"), symbol: "person.text.rectangle", value: me.displayName)
                         }
@@ -46,7 +46,7 @@ struct AccountSettingsSheet: View {
                     }
                 }
 
-                Section(L("App")) {
+                Section(header: Text(L("App"))) {
                     NavigationLink { AppearanceSettingsView() } label: {
                         SettingsRow(title: L("Appearance"), symbol: "circle.lefthalf.filled",
                             value: L((AppAppearance(rawValue: appearanceValue) ?? .system).title))
@@ -67,7 +67,7 @@ struct AccountSettingsSheet: View {
                     .disabled(!showsSessionList)
                 }
                 revealAnimationSection
-                Section(L("Workspace")) {
+                Section(header: Text(L("Workspace"))) {
                     NavigationLink { SettingsServerView() } label: {
                         SettingsRow(title: L("Server"), symbol: "server.rack", value: appState.serverURL?.host)
                     }

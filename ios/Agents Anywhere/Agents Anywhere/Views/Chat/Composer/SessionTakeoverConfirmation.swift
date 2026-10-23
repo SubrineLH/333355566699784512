@@ -8,10 +8,10 @@ struct SessionTakeoverConfirmation: ViewModifier {
     let onConfirm: (Bool) async -> Void
 
     func body(content: Content) -> some View {
-        content.compatAlert(pending == true ? L("开启接管？") : L("关闭接管？"), isPresented: Binding(
+        let enabled = pending ?? false
+        return content.compatAlert(pending == true ? L("开启接管？") : L("关闭接管？"), isPresented: Binding(
             get: { pending != nil }, set: { if !$0 { pending = nil } }),
             ) {
-                let enabled = pending ?? false
                 Button(enabled ? L("开启接管") : L("关闭接管")) { Task { await onConfirm(enabled) } }
                 Button(L("取消"), role: .cancel) {}
             } message: {

@@ -70,7 +70,7 @@ struct DevicePillButton: View {
                 .opacity(isLoading ? 0 : 1)
                 .compatOverlay { if isLoading { ProgressView().compatControlSize(.mini) } }
                 .padding(.horizontal, 12).frame(minHeight: 30)
-                .background(AppTheme.sidebarSelectionFill(colorScheme), in: .capsule)
+                .compatBackground(AppTheme.sidebarSelectionFill(colorScheme), in: .capsule)
                 .opacity(isEnabled ? 1 : 0.45)
                 .contentShape(Capsule())
         }
@@ -94,7 +94,7 @@ struct DeviceFilterTags<Value: Hashable & Identifiable>: View {
                         .font(.subheadline.weight(selected ? .semibold : .regular))
                         .foregroundColor(selected ? .primary : .secondary)
                         .padding(.horizontal, 14).frame(minHeight: 34)
-                        .background(selected ? AppTheme.sidebarSelectionFill(colorScheme) : .clear, in: .capsule)
+                        .compatBackground(selected ? AppTheme.sidebarSelectionFill(colorScheme) : .clear, in: .capsule)
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)

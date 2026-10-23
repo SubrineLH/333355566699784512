@@ -64,7 +64,7 @@ struct SettingsServerView: View {
     @EnvironmentObject private var appState: AppState
     var body: some View {
         List {
-            Section(L("Connection")) {
+            Section(header: Text(L("Connection"))) {
                 CompatLabeledRow(L("Status"), value: appState.isServerConnected ? L("Connected") : L("Offline"))
                 if let url = appState.serverURL {
                     Text(url.absoluteString).font(Font.system(.callout, design: .monospaced)).compatTextSelection()

@@ -6,7 +6,7 @@ struct ChatShellView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    @StateObject private var sidebar = ChatSidebarState()
+    @State private var sidebar = ChatSidebarState()
     @State private var newSessionPresentationID = UUID()
     private var selection: ChatShellSelection {
         get { appState.chatSelection }

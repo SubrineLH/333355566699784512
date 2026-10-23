@@ -40,17 +40,21 @@ struct ChatPageToolbar: ViewModifier {
             .compatNavigationSubtitle(alignsTitleLeading ? "" : subtitle ?? "")
             .navigationBarTitleDisplayMode(.inline)
             .compatToolbarVisibility(.visible, for: .navigationBar)
-            .compatToolbarRemoving( .sidebarToggle)
+            .compatToolbarRemoving(.sidebarToggle)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: onMenu) { SidebarMenuIcon() }
                         .accessibilityLabel(L("打开侧栏"))
                 }
-                if alignsTitleLeading {
-                    // Use the title region's available width. A leading bar
-                    // item is sized as a control and can collapse to its minimum
-                    // width even when there is space between the buttons.
-                    ToolbarItem(placement: .principal) {
+                // A bare `if` at the top of a toolbar builder needs iOS 16, so
+                // each branch lives inside its own item and the unused side
+                // renders an empty view.
+                ToolbarItem(placement: .principal) {
+                    if alignsTitleLeading {
+                        // Use the title region's available width. A leading bar
+                        // item is sized as a control and can collapse to its
+                        // minimum width even when there is space between the
+                        // buttons.
                         VStack(alignment: .leading, spacing: 1) {
                             Text(title).font(.headline).lineLimit(1)
                                 .accessibilityAddTraits(.isHeader)
@@ -60,11 +64,17 @@ struct ChatPageToolbar: ViewModifier {
                         }
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        EmptyView()
                     }
-                    
-                } else if subtitle != nil || status != nil {
-                    ToolbarItem(placement: .subtitle) {
+                }
+                // `ToolbarItemPlacement.subtitle` is iOS 26; the trailing item
+                // keeps the same information visible on iOS 14.
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if !alignsTitleLeading, subtitle != nil || status != nil {
                         ChatToolbarSubtitle(subtitle: subtitle, status: status)
+                    } else {
+                        EmptyView()
                     }
                 }
             }

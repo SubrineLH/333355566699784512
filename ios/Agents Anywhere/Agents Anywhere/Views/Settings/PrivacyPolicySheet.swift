@@ -27,28 +27,28 @@ struct PrivacyPolicyContent: View {
                 Text(L("privacyPolicy.updated"))
             }
 
-            Section(L("privacyPolicy.server.title")) {
+            Section(header: Text(L("privacyPolicy.server.title"))) {
                 paragraph("privacyPolicy.server.body")
             }
 
-            Section(L("privacyPolicy.agents.title")) {
+            Section(header: Text(L("privacyPolicy.agents.title"))) {
                 paragraph("privacyPolicy.agents.body")
                 paragraph("privacyPolicy.externalContent.body")
             }
 
-            Section(L("privacyPolicy.localStorage.title")) {
+            Section(header: Text(L("privacyPolicy.localStorage.title"))) {
                 paragraph("privacyPolicy.localStorage.body")
             }
 
-            Section(L("privacyPolicy.permissions.title")) {
+            Section(header: Text(L("privacyPolicy.permissions.title"))) {
                 paragraph("privacyPolicy.permissions.body")
             }
 
-            Section(L("privacyPolicy.retention.title")) {
+            Section(header: Text(L("privacyPolicy.retention.title"))) {
                 paragraph("privacyPolicy.retention.body")
             }
 
-            Section(L("privacyPolicy.contact.title")) {
+            Section(header: Text(L("privacyPolicy.contact.title"))) {
                 paragraph("privacyPolicy.contact.body")
                 Link(destination: URL(string: "https://github.com/anywhere-labs/Agents-Anywhere")!) {
                     Label(L("privacyPolicy.projectSupport"), appSymbol: "arrow.up.right")

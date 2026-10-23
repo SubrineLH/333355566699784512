@@ -150,7 +150,7 @@ extension View {
 
 enum RuntimeConfigCopy {
     static func lookup(_ key: String, locale: Locale) -> String {
-        L(String.LocalizationValue(key), locale: locale)
+        compatLocalized(key, locale: locale)
     }
     static func schemaText(_ schema: [String: JSONValue], key: String, fallback: String, locale: Locale) -> String {
         if let key = schema["metadata"]?.configObject?["i18n"]?.configObject?[key]?.stringValue {

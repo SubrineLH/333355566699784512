@@ -20,20 +20,6 @@ func L(_ value: CompatLocalizedString) -> String {
     NSLocalizedString(value.key, comment: "")
 }
 
-/// Accepts the `CompatLocalizedString` values that used to be
-/// `LocalizedStringResource`s, so call sites keep passing them straight in.
-@inline(__always)
-func L(_ value: CompatLocalizedString) -> String {
-    NSLocalizedString(value.key, comment: "")
-}
-
-/// Accepts the `CompatLocalizedString` values that used to be
-/// `LocalizedStringResource`s, so call sites keep passing them straight in.
-@inline(__always)
-func L(_ value: CompatLocalizedString) -> String {
-    NSLocalizedString(value.key, comment: "")
-}
-
 /// Variadic form used by the handful of call sites that interpolate values.
 @inline(__always)
 func L(_ value: String, _ arguments: CVarArg...) -> String {
@@ -104,3 +90,14 @@ private let compatISO8601Formatter: ISO8601DateFormatter = {
     formatter.formatOptions = [.withInternetDateTime]
     return formatter
 }()
+
+// MARK: - Visibility
+
+/// `Visibility` is iOS 15; the shims pass their own value instead.
+enum CompatVisibility: Equatable {
+    case automatic
+    case visible
+    case hidden
+
+    var isHidden: Bool { self == .hidden }
+}

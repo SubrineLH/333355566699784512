@@ -264,13 +264,13 @@ extension View {
     }
 
     /// Replaces `.compatScrollContentBackground(_:)`.
-    func compatScrollContentBackground(_ visibility: Visibility) -> some View {
+    func compatScrollContentBackground(_ visibility: CompatVisibility) -> some View {
         self
     }
 
     /// Replaces `.compatScrollIndicators(_:axes:)`.
-    func compatScrollIndicators(_ visibility: Visibility, axes: Axis.Set = .vertical) -> some View {
-        showsIndicators(visibility == .visible)
+    func compatScrollIndicators(_ visibility: CompatVisibility, axes: Axis.Set = .vertical) -> some View {
+        self
     }
 
     /// Replaces `.compatContainerRelativeFrame(_:alignment:_:)` by falling back to the
@@ -341,6 +341,10 @@ struct CompatSensoryFeedback: Equatable {
     static let selection = CompatSensoryFeedback(kind: "selection")
     static let impact = CompatSensoryFeedback(kind: "impact")
 
+    static func impact(weight: Flexibility, intensity: Double) -> CompatSensoryFeedback {
+        CompatSensoryFeedback(kind: "impact")
+    }
+
     static func impact(flexibility: Flexibility, intensity: Double) -> CompatSensoryFeedback {
         _ = flexibility
         _ = intensity
@@ -385,7 +389,6 @@ extension View {
     /// Replaces the iOS 26 scroll edge effect family. iOS 14 has no edge
     /// effects, so the style is dropped and the call site stays readable.
     func compatScrollEdgeEffectStyle(_ style: CompatScrollEdgeEffectStyle, for edge: CompatVerticalEdge) -> some View { self }
-    func compatScrollEdgeEffectStyle() -> some View { self }
     func compatScrollEdgeEffectHidden(_ hidden: Bool = true) -> some View { self }
 }
 
@@ -449,10 +452,6 @@ struct CompatLabeledContent<Label: View, Content: View>: View {
 extension CompatLabeledContent where Label == Text {
     init(_ label: String, @ViewBuilder content: () -> Content) {
         self.init(content: content, label: { Text(label) })
-    }
-
-    init(_ label: String, value: String) {
-        self.init(content: { Text(value) }) { Text(label) }
     }
 }
 
@@ -583,5 +582,17 @@ struct CompatDestructiveButton<Label: View>: View {
 
     var body: some View {
         Button(action: action) { label.foregroundColor(.red) }
+    }
+}
+
+// MARK: - Button with a system image
+
+/// `Button(_:systemImage:role:action:)` is iOS 17; this keeps the same
+/// spelling on iOS 14 while still honouring the destructive role.
+extension Button {
+    init(_ title: String, systemImage: String, role: ButtonRole? = nil, action: @escaping () -> Void) where Label == SwiftUI.Label<Text, Image> {
+        self.init(role: role, action: action) {
+            SwiftUI.Label { Text(verbatim: title) } icon: { Image(systemName: systemImage) }
+        }
     }
 }

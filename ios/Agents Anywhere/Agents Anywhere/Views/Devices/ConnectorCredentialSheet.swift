@@ -99,6 +99,6 @@ private struct ConnectorCredentialValue: View {
             }
         }
         .padding(14)
-        .background(Color(UIColor.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .compatBackground(Color(UIColor.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
     }
 }

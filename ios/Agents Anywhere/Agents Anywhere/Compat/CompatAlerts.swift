@@ -100,14 +100,13 @@ extension View {
 
 // MARK: - Safe area insets
 
-extension View {
-    /// `VerticalEdge` is iOS 15, so the shims name their own edges.
+/// `VerticalEdge` is iOS 15, so the shims name their own edges.
 enum CompatVerticalEdge {
-    case all
     case all, top, bottom
 }
 
-/// iOS 14 has no `safeAreaInset(edge:spacing:content:)`. Stacking the inset
+extension View {
+    /// iOS 14 has no `safeAreaInset(edge:spacing:content:)`. Stacking the inset
     /// next to the content reproduces the visible result: bars pinned to an edge
     /// and the scrollable region taking the remaining space.
     func compatSafeAreaInset<Inset: View>(

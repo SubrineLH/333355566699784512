@@ -51,7 +51,7 @@ extension View {
     func compatConfirmationDialog(
         _ title: String,
         isPresented: Binding<Bool>,
-        titleVisibility: Visibility = .automatic,
+        titleVisibility: CompatVisibility = .automatic,
         @ViewBuilder actions: () -> some View
     ) -> some View {
         self.actionSheet(isPresented: isPresented) {

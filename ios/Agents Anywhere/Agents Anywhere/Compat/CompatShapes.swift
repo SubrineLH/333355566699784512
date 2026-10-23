@@ -52,9 +52,9 @@ struct CompatGlassStyle {
     }
 }
 
-private struct CompatShapeBackground<S: ShapeStyle>: View {
+private struct CompatShapeBackground<S: ShapeStyle, Sh: Shape>: View {
     let style: S
-    let shape: CompatShape
+    let shape: Sh
 
     var body: some View {
         shape.fill(style)
@@ -68,6 +68,12 @@ extension View {
     }
 
     /// Replaces `.background(_:in:)` (iOS 15) with a clipped fill.
+    /// The concrete overload resolves the `.rect(...)`/`.capsule` shorthand
+    /// that a generic `Shape` parameter cannot infer.
+    func compatBackground<S: ShapeStyle>(_ style: S, in shape: CompatShape) -> some View {
+        background(CompatShapeBackground(style: style, shape: shape))
+    }
+
     func compatBackground<S: ShapeStyle, Sh: Shape>(_ style: S, in shape: Sh) -> some View {
         background(CompatShapeBackground(style: style, shape: shape))
     }

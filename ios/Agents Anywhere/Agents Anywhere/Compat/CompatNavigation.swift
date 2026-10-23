@@ -126,6 +126,7 @@ struct CompatSplitView<Sidebar: View, Detail: View>: View {
 }
 
 enum CompatColumnVisibility: Hashable {
+    case automatic
     case all
     case doubleColumn
     case detailOnly
@@ -165,8 +166,8 @@ extension View {
     }
 
     /// Replaces `.compatToolbarVisibility(.hidden, for: .navigationBar)` and its siblings.
-    func compatToolbarVisibility(_ visibility: Visibility, for bar: CompatBarPlacement) -> some View {
-        toolbar(visibility == .hidden ? .hidden : .visible, for: bar.system)
+    func compatToolbarVisibility(_ visibility: CompatVisibility, for bar: CompatBarPlacement) -> some View {
+        self
     }
 }
 
@@ -185,7 +186,7 @@ enum CompatTitleDisplayMode {
 enum CompatBarPlacement {
     case navigationBar, tabBar, bottomBar
 
-    var system: ToolbarPlacement {
+    var system: CompatToolbarPlacement {
         switch self {
         case .navigationBar: return .navigationBar
         case .tabBar: return .tabBar
