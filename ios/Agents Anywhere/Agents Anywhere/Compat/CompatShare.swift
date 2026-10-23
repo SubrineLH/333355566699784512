@@ -16,7 +16,9 @@ struct CompatShareLink<Label: View>: View {
     }
 
     var body: some View {
-        Button { isPresented = true } label: label
+        // A trailing closure cannot be a bare closure reference, so the label
+        // is passed through the labelled initialiser instead.
+        Button(action: { isPresented = true }, label: label)
             .sheet(isPresented: $isPresented) {
                 CompatActivityView(activityItems: [text()])
             }

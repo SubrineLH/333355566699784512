@@ -40,7 +40,6 @@ struct ManualLoginView: View {
                 .frame(maxWidth: 520)
                 .frame(maxWidth: .infinity)
             }
-            }
         } destination: { route in
             switch route {
             case .selfHosted:
