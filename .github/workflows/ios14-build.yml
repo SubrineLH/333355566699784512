@@ -57,6 +57,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" \
+            OTHER_SWIFT_FLAGS='$(inherited) -Xllvm -sil-disable-pass=EarlyPerfInliner' \
             build 2>&1 | tee /tmp/build.log
 
       - name: Summarise errors
