@@ -18,7 +18,7 @@ struct DeviceProjectList: View {
     let onDelete: (V2Project) -> Void
 
     var body: some View {
-        DeviceSection(header: Text(L("Projects"))) {
+        DeviceSection(L("Projects")) {
             DeviceHeaderIconButton(title: L("Create project"), symbol: "plus", action: onCreate)
                 .disabled(!canManage)
         } content: {
@@ -55,7 +55,7 @@ struct DeviceWorkspaceList: View {
     let onNewSession: (WorkspaceDirectoryChoice) -> Void
 
     var body: some View {
-        DeviceSection(header: Text(L("工作目录"))) {
+        DeviceSection(L("工作目录")) {
             DeviceHeaderIconButton(title: L("选择工作目录"), symbol: "plus", action: onBrowse)
                 .disabled(!canReadFiles)
         } content: {
@@ -171,7 +171,7 @@ struct DeviceSessionList: View {
     private var isEmpty: Bool { model.filteredSessions.isEmpty }
 
     var body: some View {
-        DeviceSection(header: Text(L("Sessions"))) {
+        DeviceSection(L("Sessions")) {
             HStack(spacing: 8) {
                 DevicePillButton(title: model.isSelectingSessions ? L("Cancel") : L("Select sessions")) {
                     if model.isSelectingSessions { model.stopSelectingSessions() } else { model.startSelectingSessions() }

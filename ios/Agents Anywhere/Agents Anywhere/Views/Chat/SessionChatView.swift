@@ -43,6 +43,66 @@ struct SessionChatView: View, Equatable {
     }
     private var controls: ChatControlMetrics { .init(bodyLineHeight: bodyLineHeight) }
     private var session: V2SessionModel { model.session }
+
+    /// Split out of `body`: one dense argument list per view keeps the
+    /// type-checker inside its budget on iOS 14 toolchains.
+    @ViewBuilder
+    private func composerDock(availableHeight: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            SessionInteractionDock(chat: model, onShowAll: showNotice)
+                .traceChatLayout("interaction-dock")
+            ChatComposerDock(
+                draft: session.composer,
+                settings: model.settings,
+                maximumEditorHeight: min(160, max(72, availableHeight * 0.30)),
+                controls: controls,
+                canSend: session.canSend,
+                canAttach: model.canAttach,
+                canSelectModel: session.runtime.allows("catalog.model"),
+                canSelectPermission: session.runtime.allows("catalog.permission"),
+                isStreaming: model.isRunning,
+                canStop: session.runtime.allows("session.interrupt"),
+                isBusy: model.isWorking || !model.isOpeningReady,
+                placeholder: requiresTakeover ? L("请先接管") : L("询问 Agents"),
+                isLoadingSettings: model.isLoadingSettings,
+                settingsError: model.settingsError,
+                sessionChat: model,
+                onSend: model.send,
+                onStop: model.interrupt,
+                onLoadSettings: model.loadSettings,
+                onApplySettings: model.applySettings,
+                applyError: { model.settingsError },
+                onDraftChange: { model.repository.draftDidChange(sessionID: model.session.id) }
+            )
+            .traceChatLayout("composer-dock")
+        }
+        .frame(maxWidth: ChatControlMetrics.maximumContentWidth)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Metadata can arrive after history, so transient controls float below the
+    /// header instead of resizing its inset.
+    @ViewBuilder
+    private var transientHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if requiresTakeover {
+                takeoverPill.frame(maxWidth: .infinity, alignment: .center)
+            }
+            ChatErrorToasts(store: toasts, isRetrying: session.isLoading) { _ in
+                await session.refresh()
+            }
+            if let success = model.commandSuccess {
+                CommandSuccessToast(feedback: success) { model.commandSuccess = nil }
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private func showNotice(_ id: String) {
+        expandedNoticeID = id
+        sheet = .notices
+    }
     private var requiresTakeover: Bool { session.metadata?.takeover == false }
     // Sidebar motion changes the containing card, not the session. Observable
     // model changes and real size/environment changes still update this subtree.
@@ -68,42 +128,11 @@ struct SessionChatView: View, Equatable {
                 }
                 .compatOverlay { if !model.isOpeningReady { openingMask } }
                 .compatSafeAreaInset(edge: .bottom, spacing: 0) {
-                    VStack(spacing: 0) {
-                        SessionInteractionDock(chat: model,
-                            onShowAll: { expandedNoticeID = $0; sheet = .notices })
-                            .traceChatLayout("interaction-dock")
-                        ChatComposerDock(draft: session.composer, settings: model.settings,
-                            maximumEditorHeight: min(160, max(72, geometry.size.height * 0.30)), controls: controls,
-                            canSend: session.canSend, canAttach: model.canAttach,
-                            canSelectModel: session.runtime.allows("catalog.model"),
-                            canSelectPermission: session.runtime.allows("catalog.permission"),
-                            isStreaming: model.isRunning, canStop: session.runtime.allows("session.interrupt"),
-                            isBusy: model.isWorking || !model.isOpeningReady, placeholder: requiresTakeover ? L("请先接管") : L("询问 Agents"),
-                            isLoadingSettings: model.isLoadingSettings,
-                            settingsError: model.settingsError, sessionChat: model,
-                            onSend: model.send, onStop: model.interrupt, onLoadSettings: model.loadSettings,
-                            onApplySettings: model.applySettings, applyError: { model.settingsError },
-                            onDraftChange: { model.repository.draftDidChange(sessionID: model.session.id) })
-                            .traceChatLayout("composer-dock")
-                    }
-                    .frame(maxWidth: ChatControlMetrics.maximumContentWidth).frame(maxWidth: .infinity)
+                    composerDock(availableHeight: geometry.size.height)
                     // Native safe-area layout owns both the visible scroll
                     // region and the dock's space; do not add a second margin.
                 }
-                .compatOverlay(alignment: .topLeading) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        // Metadata can arrive after history. Transient controls
-                        // float below the header instead of resizing its inset.
-                        if requiresTakeover {
-                            takeoverPill.frame(maxWidth: .infinity, alignment: .center)
-                        }
-                        ChatErrorToasts(store: toasts, isRetrying: session.isLoading, onRetry: { _ in await session.refresh() })
-                        if let success = model.commandSuccess {
-                            CommandSuccessToast(feedback: success) { model.commandSuccess = nil }
-                                .frame(maxWidth: .infinity, alignment: .center)
-                        }
-                    }.padding(.top, 8)
-                }
+                .compatOverlay(alignment: .topLeading) { transientHeader }
         }
         .modifier(ChatPageToolbar(title: session.metadata?.title ?? L("会话"),
             subtitle: [session.metadata?.runtimeName ?? session.metadata?.runtime ?? L("Agent"),

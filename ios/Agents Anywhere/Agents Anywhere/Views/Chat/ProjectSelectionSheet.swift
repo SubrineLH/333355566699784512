@@ -32,7 +32,7 @@ struct ProjectSelectionSheet: View {
                             .font(.footnote).foregroundColor(.secondary)
                     }
                 }
-                Section(showsSessionList ? L("工作目录") : L("这台设备上的项目")) {
+                Section(header: Text(showsSessionList ? L("工作目录") : L("这台设备上的项目"))) {
                     if showsSessionList || homeProject == nil { homeRow }
                     if showsSessionList {
                         ForEach(directories) { directory in

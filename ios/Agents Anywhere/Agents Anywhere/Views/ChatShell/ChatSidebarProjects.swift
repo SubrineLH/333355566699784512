@@ -133,7 +133,7 @@ struct ChatSidebarProjects: View {
     @ViewBuilder
     private func projectMenu(_ project: V2Project, isBusy: Bool) -> some View {
         let deviceName = repository.connectors.first { $0.id == project.connectorId }?.name ?? L("设备不可用")
-        Section(deviceName) {
+        Section(header: Text(deviceName)) {
             Button(L("新建会话"), systemImage: "square.and.pencil") { onNewSession(project.id) }
             Button(L("编辑项目"), systemImage: "pencil") { editing = project }
                 .disabled(!repository.canWrite || isBusy)

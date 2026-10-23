@@ -332,7 +332,7 @@ enum CompatToolbarBackground {
 enum CompatSymbolEffect { case bounce, pulse, variableColor }
 /// Mirrors `SensoryFeedback`, whose cases the call sites still spell out.
 struct CompatSensoryFeedback: Equatable {
-    enum Flexibility: Equatable { case rigid, soft }
+    enum Flexibility: Equatable { case light, medium, heavy, rigid, soft }
     let kind: String
 
     static let success = CompatSensoryFeedback(kind: "success")

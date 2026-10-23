@@ -29,50 +29,7 @@ struct ProjectEditorSheet: View {
     }
     var body: some View {
         CompatPlainNavigationStack {
-            Form {
-                Section(header: Text(L("运行设备"))) {
-                    if draft.original != nil {
-                        CompatLabeledRow(L("设备"), value: device?.name ?? draft.connectorID)
-                    } else {
-                        Picker(L("设备"), selection: Binding(get: { draft.connectorID }, set: { draft.selectDevice($0) })) {
-                            Text(L("选择设备")).tag("")
-                            ForEach(repository.connectors.filter { $0.status == .online || $0.id == draft.connectorID }) { device in
-                                Text(device.name).tag(device.id).disabled(device.status != .online)
-                            }
-                        }.pickerStyle(.navigationLink)
-                        if device?.status != .online {
-                            Text(L("请选择在线设备后创建项目。"))
-                                .font(.footnote).foregroundColor(.secondary)
-                        }
-                    }
-                }
-                Section {
-                    HStack(spacing: 12) {
-                        if draft.original != nil {
-                            Text(draft.path).compatTextSelection()
-                                .font(.system(.body, design: .monospaced))
-                        } else {
-                            TextField(L("设备上的完整路径"), text: Binding(get: { draft.path }, set: updatePath), axis: .vertical)
-                                .font(.system(.body, design: .monospaced))
-                                .compatTextInputAutocapitalization(.never).compatAutocorrectionDisabled().disabled(device == nil)
-                        }
-                        if draft.original == nil {
-                            Button(L("浏览目录"), appSymbol: "folder") { showsFiles = true }
-                                .labelStyle(.iconOnly).buttonStyle(.borderless).frame(width: 44, height: 44)
-                                .disabled(device?.status != .online || !repository.canWrite)
-                        }
-                    }
-                } header: { Text(L("dashboard.projects.workspace")) } footer: {
-                    Text(draft.original == nil ? L("项目关联这个目录，不会在设备上新建文件夹。") : L("编辑项目时，设备和工作目录保持不变。"))
-                }
-                Section {
-                    TextField(L("例如 Agents Anywhere"), text: Binding(get: { draft.name }, set: draft.editName))
-                        .compatTextInputAutocapitalization(.never).compatAutocorrectionDisabled()
-                } header: { Text(L("项目名称")) } footer: {
-                    if draft.original == nil { Text(L("按目录自动填写名称，重名时添加数字后缀。也可以自行修改。")) }
-                }
-                if let error { Section { Text(error).foregroundColor(.secondary) } }
-            }
+            form
             .textFieldStyle(.plain)
             .disabled(saving)
             .navigationTitle(draft.original == nil ? L("创建项目") : L("编辑项目"))
@@ -103,6 +60,84 @@ struct ProjectEditorSheet: View {
                     workspace: .init(path: "~", name: "", sessionCount: 0, lastActiveAt: nil), service: service,
                     permitsReading: device.status == .online && repository.canWrite,
                     onSelectDirectory: { updatePath($0); showsFiles = false }, initialPath: draft.path.isEmpty ? "." : draft.path)
+            }
+        }
+    }
+
+    /// Each section lives in its own member: the inline tree was dense enough
+    /// that the type-checker gave up on the whole `Form`.
+    private var form: some View {
+        Form {
+            deviceSection
+            pathSection
+            nameSection
+            if let error { Section { Text(error).foregroundColor(.secondary) } }
+        }
+    }
+
+    @ViewBuilder
+    private var deviceSection: some View {
+        Section(header: Text(L("运行设备"))) {
+            if draft.original != nil {
+                CompatLabeledRow(L("设备"), value: device?.name ?? draft.connectorID)
+            } else {
+                Picker(L("设备"), selection: Binding(get: { draft.connectorID }, set: { draft.selectDevice($0) })) {
+                    Text(L("选择设备")).tag("")
+                    ForEach(selectableDevices) { connector in
+                        Text(connector.name).tag(connector.id).disabled(connector.status != .online)
+                    }
+                }
+                .pickerStyle(.navigationLink)
+                if device?.status != .online {
+                    Text(L("请选择在线设备后创建项目。"))
+                        .font(.footnote).foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    private var selectableDevices: [V2Connector] {
+        repository.connectors.filter { $0.status == .online || $0.id == draft.connectorID }
+    }
+
+    private var pathSection: some View {
+        Section {
+            HStack(spacing: 12) {
+                if draft.original != nil {
+                    Text(draft.path).compatTextSelection()
+                        .font(.system(.body, design: .monospaced))
+                } else {
+                    TextField(L("设备上的完整路径"), text: Binding(get: { draft.path }, set: updatePath), axis: .vertical)
+                        .font(.system(.body, design: .monospaced))
+                        .compatTextInputAutocapitalization(.never)
+                        .compatAutocorrectionDisabled()
+                        .disabled(device == nil)
+                }
+                if draft.original == nil {
+                    Button(L("浏览目录"), appSymbol: "folder") { showsFiles = true }
+                        .labelStyle(.iconOnly).buttonStyle(.borderless).frame(width: 44, height: 44)
+                        .disabled(device?.status != .online || !repository.canWrite)
+                }
+            }
+        } header: {
+            Text(L("dashboard.projects.workspace"))
+        } footer: {
+            Text(draft.original == nil
+                ? L("项目关联这个目录，不会在设备上新建文件夹。")
+                : L("编辑项目时，设备和工作目录保持不变。"))
+        }
+    }
+
+    private var nameSection: some View {
+        Section {
+            TextField(L("例如 Agents Anywhere"), text: Binding(get: { draft.name }, set: draft.editName))
+                .compatTextInputAutocapitalization(.never)
+                .compatAutocorrectionDisabled()
+        } header: {
+            Text(L("项目名称"))
+        } footer: {
+            if draft.original == nil {
+                Text(L("按目录自动填写名称，重名时添加数字后缀。也可以自行修改。"))
             }
         }
     }

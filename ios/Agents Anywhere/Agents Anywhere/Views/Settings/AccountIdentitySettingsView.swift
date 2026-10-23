@@ -23,7 +23,7 @@ struct AccountIdentitySettingsView: View {
 
     var body: some View {
         Form {
-            Section(title) {
+            Section(header: Text(title)) {
                 TextField(title, text: $draft.text)
                     .textContentType(mode == .nickname ? .nickname : .emailAddress)
                     .keyboardType(mode == .email ? .emailAddress : .default)

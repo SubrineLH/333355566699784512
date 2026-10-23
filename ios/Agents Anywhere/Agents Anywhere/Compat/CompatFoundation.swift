@@ -26,6 +26,22 @@ func L(_ value: String, _ arguments: CVarArg...) -> String {
     String(format: NSLocalizedString(value, comment: ""), arguments: arguments)
 }
 
+/// `String(localized:bundle:locale:)` is iOS 15. This looks the key up in
+/// the `.lproj` bundle for the requested locale and falls back to the main
+/// table, which keeps the runtime-language switch working.
+func compatLocalized(_ key: String, bundle: Bundle = .main, locale: Locale = .current) -> String {
+    if let path = bundle.path(forResource: locale.identifier, ofType: "lproj"),
+       let localized = Bundle(path: path) {
+        return localized.localizedString(forKey: key, value: nil, table: nil)
+    }
+    let language = locale.languageCode ?? locale.identifier
+    if let path = bundle.path(forResource: language, ofType: "lproj"),
+       let localized = Bundle(path: path) {
+        return localized.localizedString(forKey: key, value: nil, table: nil)
+    }
+    return bundle.localizedString(forKey: key, value: nil, table: nil)
+}
+
 // MARK: - Duration / Clock (iOS 16 `Task.sleep(for:)` replacement)
 
 /// iOS 14 cannot express `Duration`, so sleep helpers take seconds.

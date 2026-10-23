@@ -17,7 +17,7 @@ struct DeviceAgentSection: View {
         var id: String { runtime.id }
     }
     var body: some View {
-        DeviceSection(header: Text(L("dashboard.device.agentRuntimes"))) {
+        DeviceSection(L("dashboard.device.agentRuntimes")) {
             AgentRediscoveryButton(model: model)
         } content: {
             if showsConnectionNotice && !model.connected {
