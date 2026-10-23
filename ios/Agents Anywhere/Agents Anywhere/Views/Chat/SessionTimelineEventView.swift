@@ -61,6 +61,8 @@ struct SessionTimelineEventView: View {
     let disclosures: TimelineDisclosureState
     let onFile: (String) -> Void
 
+    @Environment(\.compatOpenURL) private var openURL
+
     var body: some View {
         let value = row.entry(cwd: cwd)
         switch value.kind {
@@ -93,7 +95,7 @@ struct SessionTimelineEventView: View {
                     Button { onFile(path) } label: { TimelineMarkerRow(title: value.title, symbol: value.symbol, status: row.value.status, accessory: "arrow.up.right") }
                         .buttonStyle(.plain).accessibilityHint(L("打开文件预览"))
                 } else if let url = value.externalURL {
-                    Link(destination: url) { TimelineMarkerRow(title: value.title, symbol: value.symbol, status: row.value.status, accessory: "arrow.up.right") }
+                    Button { openURL(url) } label: { TimelineMarkerRow(title: value.title, symbol: value.symbol, status: row.value.status, accessory: "arrow.up.right") }
                         .buttonStyle(.plain)
                 } else { TimelineMarkerRow(title: value.title, symbol: value.symbol, status: row.value.status) }
             }

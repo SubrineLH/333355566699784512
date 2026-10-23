@@ -115,7 +115,7 @@ enum ChatMarkdownStyle {
 struct ChatMarkdownBlockView: View, Equatable {
     let block: CompatMarkdownBlock
     let isStreaming: Bool
-    @Environment(\.openURL) private var openURL
+    @Environment(\.compatOpenURL) private var openURL
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.block == rhs.block && lhs.isStreaming == rhs.isStreaming

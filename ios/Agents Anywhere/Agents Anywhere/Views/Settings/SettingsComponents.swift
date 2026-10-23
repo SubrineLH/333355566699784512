@@ -42,7 +42,7 @@ extension View {
 }
 
 struct SettingsLanguageView: View {
-    @Environment(\.openURL) private var openURL
+    @Environment(\.compatOpenURL) private var openURL
     var body: some View {
         List {
             Section {

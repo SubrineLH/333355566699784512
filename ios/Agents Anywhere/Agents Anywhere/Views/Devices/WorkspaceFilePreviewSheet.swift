@@ -20,7 +20,7 @@ struct WorkspaceFilePreviewSheet: View {
     @State private var isOpeningBrowser = false
     @StateObject private var toasts = ChatToastStore()
     @Environment(\.presentationMode) private var presentationMode
-    @Environment(\.openURL) private var openURL
+    @Environment(\.compatOpenURL) private var openURL
     private var name: String { (path.replacingOccurrences(of: "\\", with: "/") as NSString).lastPathComponent }
     private var canRead: Bool {
         guard let session else { return true }

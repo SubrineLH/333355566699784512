@@ -4,7 +4,7 @@ import UIKit
 struct PairDeviceSheet: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.presentationMode) private var presentationMode
-    @Environment(\.openURL) private var openURL
+    @Environment(\.compatOpenURL) private var openURL
     @State private var path: [Step] = []
     @State private var name = L("New device")
     @State private var code = ""

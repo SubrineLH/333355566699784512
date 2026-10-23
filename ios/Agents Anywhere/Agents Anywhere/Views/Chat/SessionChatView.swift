@@ -184,13 +184,14 @@ struct SessionChatView: View, Equatable {
             await model.timeline.run(sessionID: session.id, repository: model.repository)
         }
         .sheet(item: $sheet) { destination in sheetContent(for: destination) }
-        .environment(\.openURL, OpenURLAction { url in
+        .compatOpenURL { url in
             if let reference = SessionFileReference.reference(from: url) {
                 if session.isValid { sheet = .preview(reference) }
-                return .handled
+                return
             }
-            return ["https", "http", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
-        })
+            guard ["https", "http", "mailto"].contains(url.scheme?.lowercased() ?? "") else { return }
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
         .quickLookPreview($previewURL)
         .modifier(SessionToastSync(model: model, toasts: toasts))
         .compatOnChange(of: previewURL) { _, url in if url == nil { cleanPreview() } }

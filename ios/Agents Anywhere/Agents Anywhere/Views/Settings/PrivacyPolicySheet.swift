@@ -17,6 +17,8 @@ struct PrivacyPolicySheet: View {
 
 /// Settings pushes the same content inside its existing navigation stack.
 struct PrivacyPolicyContent: View {
+    @Environment(\.compatOpenURL) private var openURL
+
     var body: some View {
         List {
             Section {
@@ -50,7 +52,7 @@ struct PrivacyPolicyContent: View {
 
             Section(header: Text(L("privacyPolicy.contact.title"))) {
                 paragraph("privacyPolicy.contact.body")
-                Link(destination: URL(string: "https://github.com/anywhere-labs/Agents-Anywhere")!) {
+                Button { openURL(URL(string: "https://github.com/anywhere-labs/Agents-Anywhere")!) } label: {
                     Label(L("privacyPolicy.projectSupport"), appSymbol: "arrow.up.right")
                 }
             }
