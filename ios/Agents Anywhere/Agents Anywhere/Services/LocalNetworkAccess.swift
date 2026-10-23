@@ -12,7 +12,7 @@ enum LocalNetworkAccessError: LocalizedError {
 @MainActor final class LocalNetworkAccess {
     private var connection: NWConnection?
     private var timeout: Task<Void, Never>?
-    private let result = AsyncResultGate<Bool>()
+    private let result = AsyncResultGate()
     private var denied = false
 
     static func prepare(for url: URL) async throws {

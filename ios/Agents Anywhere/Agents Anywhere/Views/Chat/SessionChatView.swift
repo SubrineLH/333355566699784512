@@ -2,7 +2,7 @@ import SwiftUI
 import QuickLook
 
 struct SessionChatView: View, Equatable {
-    @StateObject private var storage: StableViewModel<SessionChatModel>
+    @StateObject private var storage: StableViewModel
     private var model: SessionChatModel { storage.value }
     private let sessionIdentity: V2SessionModel
     let deviceName: String?

@@ -26,8 +26,8 @@ struct ChatTimelineView: View {
     @State private var hasRequestedOlder = false
     @State private var scrolling = TimelineScrollState()
     @State private var viewportSample = ChatViewportSample()
-    @State private var viewportUpdates = ChatLayoutUpdate<TimelineViewport>()
-    @State private var historyUpdates = ChatLayoutUpdate<TimelineHistoryLayout>()
+    @State private var viewportUpdates = ChatLayoutUpdate()
+    @State private var historyUpdates = ChatLayoutUpdate()
     @State private var latestPull = TimelineHistoryPull()
     @State private var olderPull = TimelineHistoryPull(edge: .older)
     @State private var olderPromptVisible = false
@@ -328,12 +328,15 @@ struct ChatTimelineView: View {
 
 /// Keep the latest measurement without publishing View state inside a layout
 /// callback. One main-queue delivery handles a burst; removal invalidates it.
-@MainActor private final class ChatLayoutUpdate<Value> {
+///
+/// Deliberately not generic: a generic class makes the Swift 6.2 optimizer crash
+/// while specializing its implicit `deinit`. `submit` erases the payload instead.
+@MainActor private final class ChatLayoutUpdate {
     private var pending: (() -> Void)?
     private var scheduled = false
     private var generation = 0
 
-    func submit(_ value: Value, apply: @escaping (Value) -> Void) {
+    func submit<Value>(_ value: Value, apply: @escaping (Value) -> Void) {
         pending = { apply(value) }
         guard !scheduled else { return }
         scheduled = true

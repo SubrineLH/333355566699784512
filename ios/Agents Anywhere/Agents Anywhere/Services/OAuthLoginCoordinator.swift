@@ -16,7 +16,7 @@ final class OAuthLoginCoordinator: NSObject, ObservableObject {
     private let clientID = "agents-anywhere-mobile"
     private var session: ASWebAuthenticationSession?
     private var attemptID: UUID?
-    private var callback: AsyncResultGate<URL>?
+    private var callback: AsyncResultGate?
     private var context: OAuthPresentationContext?
 
     func authenticate(serverURL: URL) async throws -> OAuthTokenResponse {
@@ -57,7 +57,7 @@ final class OAuthLoginCoordinator: NSObject, ObservableObject {
     }
 
     private func callbackURL(for url: URL, attempt: UUID) async throws -> URL {
-        let result = AsyncResultGate<URL>()
+        let result = AsyncResultGate()
         callback = result
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
