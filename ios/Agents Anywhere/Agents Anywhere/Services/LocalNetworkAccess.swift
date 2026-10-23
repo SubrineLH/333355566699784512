@@ -33,7 +33,7 @@ enum LocalNetworkAccessError: LocalizedError {
                 switch state {
                 case .ready: self.finish(.success(true))
                 case .failed(let error): self.finish(.failure(self.denied ? LocalNetworkAccessError.denied : error))
-                case .cancelled: self.result.resolve(.failure(CancellationError()))
+                case .cancelled: self.result.resolveFailure(CancellationError())
                 default: break // Wait through the permission prompt, including .waiting.
                 }
             }
@@ -45,12 +45,12 @@ enum LocalNetworkAccessError: LocalizedError {
         }
         defer { timeout?.cancel(); connection.stateUpdateHandler = nil; connection.cancel(); self.connection = nil }
         _ = try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
                 result.install(continuation)
-                if Task.isCancelled { result.resolve(.failure(CancellationError())) }
+                if Task.isCancelled { result.resolveFailure(CancellationError()) }
                 else { connection.start(queue: .main) }
             }
-        } onCancel: { [result] in result.resolve(.failure(CancellationError())) }
+        } onCancel: { [result] in result.resolveFailure(CancellationError()) }
     }
     private func finish(_ result: Result<Bool, Error>) { self.result.resolve(result); timeout?.cancel() }
 }

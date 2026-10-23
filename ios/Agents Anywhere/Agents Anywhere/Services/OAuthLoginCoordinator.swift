@@ -39,7 +39,7 @@ final class OAuthLoginCoordinator: NSObject, ObservableObject {
     }
 
     func cancel() {
-        callback?.resolve(.failure(CancellationError()))
+        callback?.resolveFailure(CancellationError())
         callback = nil
         let previous = session; session = nil; attemptID = nil; context = nil
         previous?.cancel()
@@ -60,27 +60,27 @@ final class OAuthLoginCoordinator: NSObject, ObservableObject {
         let result = AsyncResultGate()
         callback = result
         return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
                 result.install(continuation)
-                guard !Task.isCancelled else { result.resolve(.failure(CancellationError())); return }
+                guard !Task.isCancelled else { result.resolveFailure(CancellationError()); return }
                 let browser = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { [weak self] url, error in
                     Task { @MainActor in
                         if self?.attemptID == attempt { self?.session = nil }
                     }
                     if let error = error as? ASWebAuthenticationSessionError, error.code == .canceledLogin {
-                        result.resolve(.failure(OAuthLoginError.cancelled))
-                    } else if let error { result.resolve(.failure(error)) }
+                        result.resolveFailure(OAuthLoginError.cancelled)
+                    } else if let error { result.resolveFailure(error) }
                     else if let url { result.resolve(.success(url)) }
-                    else { result.resolve(.failure(OAuthLoginError.invalidCallback)) }
+                    else { result.resolveFailure(OAuthLoginError.invalidCallback) }
                 }
                 browser.presentationContextProvider = context
                 browser.prefersEphemeralWebBrowserSession = false
                 session = browser
                 if !browser.start() {
-                    session = nil; result.resolve(.failure(OAuthLoginError.couldNotStart))
+                    session = nil; result.resolveFailure(OAuthLoginError.couldNotStart)
                 }
             }
-        } onCancel: { result.resolve(.failure(CancellationError())) }
+        } onCancel: { result.resolveFailure(CancellationError()) }
     }
 
     private func mobileOAuthURL(serverURL: URL, pkce: PKCEPair, state: String) throws -> URL {
