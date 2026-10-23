@@ -11,8 +11,8 @@ struct AppearanceSettingsView: View {
                         HStack(spacing: 14) {
                             AppSymbol(symbol(appearance)).frame(width: 24)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(appearance.title).foregroundStyle(.primary)
-                                Text(appearance.description).font(.footnote).foregroundStyle(.secondary)
+                                Text(appearance.title).foregroundColor(.primary)
+                                Text(appearance.description).font(.footnote).foregroundColor(.secondary)
                             }
                             Spacer()
                             if appearanceValue == appearance.rawValue { AppSymbol("checkmark") }
@@ -21,7 +21,7 @@ struct AppearanceSettingsView: View {
                     .accessibilityAddTraits(appearanceValue == appearance.rawValue ? .isSelected : [])
                 }
             }
-        }.settingsPage(String(localized: "Appearance"))
+        }.settingsPage(L("Appearance"))
     }
     private func symbol(_ appearance: AppAppearance) -> String {
         switch appearance {

@@ -17,7 +17,7 @@ final class V2SessionRepository {
     private var persistenceTask: Task<Void, Never>?
     private let policy: V2SessionCachePolicy
     private let now: () -> Date
-    private let sleep: (Duration) async throws -> Void
+    private let sleep: (TimeInterval) async throws -> Void
     private var entries: [V2SessionID: Entry] = [:]
     private var accessCounter = 0
     private var suspended = false
@@ -30,7 +30,7 @@ final class V2SessionRepository {
         policy: V2SessionCachePolicy = V2SessionCachePolicy(),
         localStore: V2LocalStore? = nil,
         now: @escaping () -> Date = Date.init,
-        sleep: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping (TimeInterval) async throws -> Void = { try await compatSleep(seconds: $0) }
     ) {
         self.scope = scope
         self.detail = detail
@@ -141,7 +141,7 @@ final class V2SessionRepository {
     private func schedulePersistence() {
         guard localStore != nil, persistenceTask == nil else { return }
         persistenceTask = Task { [weak self] in
-            do { try await Task.sleep(for: .milliseconds(2500)) } catch { return }
+            do { try await compatSleep(milliseconds: 2500) } catch { return }
             await self?.flushCache()
         }
     }
@@ -402,7 +402,7 @@ final class V2SessionRepository {
 
     private func requireNetwork() throws {
         if network.availability == .offline {
-            throw V2ClientFailure(kind: .offline, message: String(localized: "You are offline. Cached content is still available."))
+            throw V2ClientFailure(kind: .offline, message: L("You are offline. Cached content is still available."))
         }
     }
 
@@ -498,7 +498,7 @@ final class V2SessionRepository {
                     entry.connection = .reconnecting
                     self.emit(entry, persist: false)
                     attempt += 1
-                    do { try await self.sleep(.seconds(min(1 << min(attempt - 1, 4), 15))) }
+                    do { try await self.sleep(min(1 << min(attempt - 1, 4), 15)) }
                     catch { return }
                 }
             }
@@ -707,8 +707,8 @@ private enum CacheError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidated: String(localized: "The session request no longer belongs to the active cache.")
-        case .connectionClosed: String(localized: "The session connection closed.")
+        case .invalidated: L("The session request no longer belongs to the active cache.")
+        case .connectionClosed: L("The session connection closed.")
         }
     }
 }

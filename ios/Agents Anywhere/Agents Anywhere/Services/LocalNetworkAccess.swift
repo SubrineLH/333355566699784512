@@ -3,7 +3,7 @@ import Network
 
 enum LocalNetworkAccessError: LocalizedError {
     case denied
-    var errorDescription: String? { String(localized: "Local Network access is disabled. Enable it for Agents Anywhere in Settings, then try again.") }
+    var errorDescription: String? { L("Local Network access is disabled. Enable it for Agents Anywhere in Settings, then try again.") }
 }
 
 /// Trigger local-network privacy with a real connection to the server the user
@@ -37,7 +37,7 @@ enum LocalNetworkAccessError: LocalizedError {
             }
         }
         timeout = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(30)) } catch { return }
+            do { try await compatSleep(seconds: 30) } catch { return }
             guard let self else { return }
             self.finish(.failure(self.denied ? LocalNetworkAccessError.denied : URLError(.timedOut)))
         }

@@ -18,27 +18,27 @@ struct DeviceProjectList: View {
     let onDelete: (V2Project) -> Void
 
     var body: some View {
-        DeviceSection(String(localized: "Projects")) {
-            DeviceHeaderIconButton(title: String(localized: "Create project"), symbol: "plus", action: onCreate)
+        DeviceSection(L("Projects")) {
+            DeviceHeaderIconButton(title: L("Create project"), symbol: "plus", action: onCreate)
                 .disabled(!canManage)
         } content: {
             if projects.isEmpty {
-                DeviceEmptyText(text: String(localized: "No projects yet"))
+                DeviceEmptyText(text: L("No projects yet"))
             } else {
                 DeviceDirectoryGrid(items: projects) { project in
                     DeviceDirectoryCard(name: project.name, path: project.workspacePath, pinned: project.pinned,
-                        openHint: String(localized: "Show project sessions"),
+                        openHint: L("Show project sessions"),
                         onOpen: { onOpen(project) }, onNewSession: { onNewSession(project) })
                     .contextMenu {
-                        Button(String(localized: "New session"), systemImage: "square.and.pencil") { onNewSession(project) }
-                        Button(String(localized: "Files"), systemImage: "folder") { onFiles(project) }.disabled(!canReadFiles)
+                        Button(L("New session"), systemImage: "square.and.pencil") { onNewSession(project) }
+                        Button(L("Files"), systemImage: "folder") { onFiles(project) }.disabled(!canReadFiles)
                         Divider()
-                        Button(String(localized: "Rename project"), systemImage: "pencil") { onEdit(project) }.disabled(!canManage)
-                        Button(project.pinned ? String(localized: "Unpin") : String(localized: "Pin"), systemImage: "pin") { onPin(project) }.disabled(!canManage)
-                        Button(String(localized: "Copy path"), systemImage: "doc.on.doc") { UIPasteboard.general.string = project.workspacePath }
+                        Button(L("Rename project"), systemImage: "pencil") { onEdit(project) }.disabled(!canManage)
+                        Button(project.pinned ? L("Unpin") : L("Pin"), systemImage: "pin") { onPin(project) }.disabled(!canManage)
+                        Button(L("Copy path"), systemImage: "doc.on.doc") { UIPasteboard.general.string = project.workspacePath }
                         Divider()
-                        Button(String(localized: "Archive project sessions"), systemImage: "archivebox") { onArchive(project) }.disabled(!canManage)
-                        Button(String(localized: "Delete project"), systemImage: "trash", role: .destructive) { onDelete(project) }
+                        Button(L("Archive project sessions"), systemImage: "archivebox") { onArchive(project) }.disabled(!canManage)
+                        Button(L("Delete project"), systemImage: "trash", role: .destructive) { onDelete(project) }
                             .disabled(!canManage || project.sidebarSessionCounts.active + project.sidebarSessionCounts.archived > 0)
                     }
                 }
@@ -55,21 +55,21 @@ struct DeviceWorkspaceList: View {
     let onNewSession: (WorkspaceDirectoryChoice) -> Void
 
     var body: some View {
-        DeviceSection(String(localized: "工作目录")) {
-            DeviceHeaderIconButton(title: String(localized: "选择工作目录"), symbol: "plus", action: onBrowse)
+        DeviceSection(L("工作目录")) {
+            DeviceHeaderIconButton(title: L("选择工作目录"), symbol: "plus", action: onBrowse)
                 .disabled(!canReadFiles)
         } content: {
             if workspaces.isEmpty {
-                DeviceEmptyText(text: String(localized: "No workspaces yet"))
+                DeviceEmptyText(text: L("No workspaces yet"))
             } else {
                 DeviceDirectoryGrid(items: workspaces) { workspace in
                     DeviceDirectoryCard(name: workspace.name, path: workspace.path,
-                        openHint: String(localized: "Files"), canOpen: canReadFiles,
+                        openHint: L("Files"), canOpen: canReadFiles,
                         onOpen: { onOpen(workspace) }, onNewSession: { onNewSession(workspace) })
                     .contextMenu {
-                        Button(String(localized: "New session"), systemImage: "square.and.pencil") { onNewSession(workspace) }
-                        Button(String(localized: "Files"), systemImage: "folder") { onOpen(workspace) }.disabled(!canReadFiles)
-                        Button(String(localized: "Copy path"), systemImage: "doc.on.doc") { UIPasteboard.general.string = workspace.path }
+                        Button(L("New session"), systemImage: "square.and.pencil") { onNewSession(workspace) }
+                        Button(L("Files"), systemImage: "folder") { onOpen(workspace) }.disabled(!canReadFiles)
+                        Button(L("Copy path"), systemImage: "doc.on.doc") { UIPasteboard.general.string = workspace.path }
                     }
                 }
             }
@@ -84,7 +84,7 @@ struct DeviceHeaderIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            AppSymbol(symbol, size: 18).frame(width: 36, height: 36).contentShape(.rect)
+            AppSymbol(symbol, size: 18).frame(width: 36, height: 36).contentShape(Rectangle())
         }
         .buttonStyle(.plain).accessibilityLabel(title)
     }
@@ -104,12 +104,12 @@ private struct DeviceDirectoryGrid<Item: Identifiable, Card: View>: View {
             if items.count > collapsedDirectoryCount {
                 Button { withAnimation(.snappy) { expanded.toggle() } } label: {
                     HStack(spacing: 4) {
-                        Text(expanded ? String(localized: "Show less") :
-                            String(localized: "Show all \(items.count - collapsedDirectoryCount) more"))
+                        Text(expanded ? L("Show less") :
+                            L("Show all \(items.count - collapsedDirectoryCount) more"))
                         AppSymbol("chevron.right", size: 12).rotationEffect(.degrees(expanded ? -90 : 0))
                     }
-                    .font(.footnote.weight(.medium)).foregroundStyle(.secondary)
-                    .frame(minHeight: 36).contentShape(.rect)
+                    .font(.footnote.weight(.medium)).foregroundColor(.secondary)
+                    .frame(minHeight: 36).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -131,33 +131,33 @@ private struct DeviceDirectoryCard: View {
         HStack(spacing: 4) {
             Button(action: onOpen) {
                 HStack(spacing: 12) {
-                    AppSymbol("folder", size: 18).foregroundStyle(.secondary)
+                    AppSymbol("folder", size: 18).foregroundColor(.secondary)
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 4) {
                             Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
-                            if pinned { AppSymbol("pin", size: 11).foregroundStyle(.secondary) }
+                            if pinned { AppSymbol("pin", size: 11).foregroundColor(.secondary) }
                         }
-                        Text(path).font(.caption.monospaced()).foregroundStyle(.secondary)
+                        Text(path).font(Font.system(.caption, design: .monospaced)).foregroundColor(.secondary)
                             .lineLimit(1).truncationMode(.middle)
                     }
                     Spacer(minLength: 0)
                 }
-                .frame(minHeight: 44).contentShape(.rect)
+                .frame(minHeight: 44).contentShape(Rectangle())
             }
             .buttonStyle(.plain).disabled(!canOpen).accessibilityHint(openHint)
             Button(action: onNewSession) {
-                AppSymbol("square.and.pencil", size: 18).frame(width: 40, height: 44).contentShape(.rect)
+                AppSymbol("square.and.pencil", size: 18).frame(width: 40, height: 44).contentShape(Rectangle())
             }
-            .buttonStyle(.plain).accessibilityLabel(String(localized: "New session"))
+            .buttonStyle(.plain).accessibilityLabel(L("New session"))
         }
         .padding(.leading, 14).padding(.trailing, 4).padding(.vertical, 6)
-        .background(AppTheme.groupedFill(colorScheme), in: .rect(cornerRadius: 16, style: .continuous))
-        .contentShape(.contextMenuPreview, .rect(cornerRadius: 16, style: .continuous))
+        .compatBackground(AppTheme.groupedFill(colorScheme), in: .rect(cornerRadius: 16, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
 struct DeviceSessionList: View {
-    @Bindable var model: DeviceManagementModel
+    @ObservedObject var model: DeviceManagementModel
     let projects: [V2Project]
     let showsProjectNames: Bool
     let canManage: Bool
@@ -171,32 +171,29 @@ struct DeviceSessionList: View {
     private var isEmpty: Bool { model.filteredSessions.isEmpty }
 
     var body: some View {
-        DeviceSection(String(localized: "Sessions")) {
+        DeviceSection(L("Sessions")) {
             HStack(spacing: 8) {
-                DevicePillButton(title: model.isSelectingSessions ? String(localized: "Cancel") : String(localized: "Select sessions")) {
+                DevicePillButton(title: model.isSelectingSessions ? L("Cancel") : L("Select sessions")) {
                     if model.isSelectingSessions { model.stopSelectingSessions() } else { model.startSelectingSessions() }
                 }
                 .disabled(!canManage || (isEmpty && !model.isSelectingSessions))
                 if !model.isSelectingSessions {
-                    DevicePillButton(title: restores ? String(localized: "Restore all in scope") : String(localized: "Archive all in scope"),
+                    DevicePillButton(title: restores ? L("Restore all in scope") : L("Archive all in scope"),
                         isLoading: isWorking, action: onArchiveAll)
                         .disabled(!canManage || isEmpty)
-                    DeviceHeaderIconButton(title: String(localized: "New session"), symbol: "square.and.pencil", action: onNewSession)
+                    DeviceHeaderIconButton(title: L("New session"), symbol: "square.and.pencil", action: onNewSession)
                 }
             }
         } content: {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) { filters; Spacer(minLength: 8); scopeMenu }
-                VStack(alignment: .leading, spacing: 8) { filters; scopeMenu }
-            }
+            VStack(alignment: .leading, spacing: 8) { filters; scopeMenu }
             .padding(.bottom, 4)
             if model.isSelectingSessions {
-                Button(String(localized: "Select up to 200 sessions"), action: model.toggleSelectAll)
-                    .font(.footnote.weight(.medium)).buttonStyle(.plain).foregroundStyle(.secondary)
+                Button(L("Select up to 200 sessions"), action: model.toggleSelectAll)
+                    .font(.footnote.weight(.medium)).buttonStyle(.plain).foregroundColor(.secondary)
                     .frame(minHeight: 32).disabled(!canManage)
             }
             if isEmpty {
-                DeviceEmptyText(text: String(localized: "No sessions here"))
+                DeviceEmptyText(text: L("No sessions here"))
             } else {
                 DeviceRows {
                     ForEach(model.filteredSessions) { session in row(session) }
@@ -207,12 +204,12 @@ struct DeviceSessionList: View {
 
     private var filters: some View {
         DeviceFilterTags(values: V2DeviceSessionFilter.allCases,
-            selection: Binding(get: { model.sessionFilter }, set: model.setSessionFilter)) { String(localized: $0.title) }
+            selection: Binding(get: { model.sessionFilter }, set: model.setSessionFilter)) { L($0.title) }
     }
 
     private var scopeMenu: some View {
         Menu {
-            Picker(showsProjectNames ? String(localized: "Project") : String(localized: "工作目录"),
+            Picker(showsProjectNames ? L("Project") : L("工作目录"),
                 selection: Binding(get: { model.projectID }, set: model.selectProject)) {
                 Text(allScopesTitle).tag(String?.none)
                 ForEach(projects) {
@@ -224,11 +221,11 @@ struct DeviceSessionList: View {
                 Text(scopeTitle).lineLimit(1)
                 AppSymbol("chevron.down", size: 12)
             }
-            .font(.subheadline).foregroundStyle(.secondary)
-            .frame(minHeight: 34).contentShape(.rect)
+            .font(.subheadline).foregroundColor(.secondary)
+            .frame(minHeight: 34).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(showsProjectNames ? String(localized: "Project") : String(localized: "工作目录"))
+        .accessibilityLabel(showsProjectNames ? L("Project") : L("工作目录"))
     }
 
     private func row(_ session: V2SessionMeta) -> some View {
@@ -236,40 +233,40 @@ struct DeviceSessionList: View {
             HStack(spacing: 12) {
                 if model.isSelectingSessions {
                     AppSymbol(model.selectedSessionIds.contains(session.id) ? "checkmark.circle.fill" : "circle", size: 18)
-                        .foregroundStyle(model.selectedSessionIds.contains(session.id) ? .primary : .secondary)
+                        .foregroundColor(model.selectedSessionIds.contains(session.id) ? .primary : .secondary)
                         .frame(width: 14)
                 } else {
                     DeviceStatusDot(tone: tone(session.status))
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(session.title.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Untitled session"))
+                    Text(session.title.flatMap { $0.isEmpty ? nil : $0 } ?? L("Untitled session"))
                         .font(.body.weight(session.unread ? .semibold : .medium))
-                        .foregroundStyle(.primary).lineLimit(1)
+                        .foregroundColor(.primary).lineLimit(1)
                     HStack(spacing: 6) {
                         Text(session.runtime)
                         if let subtitle = scopeSubtitle(session) {
                             Text(verbatim: "·"); Text(subtitle).lineLimit(1)
                         }
                     }
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    .font(.caption).foregroundColor(.secondary).lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 if let date = activityDate(session) {
                     Text(date, format: .dateTime.month(.abbreviated).day())
-                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        .font(.caption.monospacedDigit()).foregroundColor(.secondary)
                 }
             }
             .padding(.vertical, 10).frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
-            .contentShape(.rect)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityValue(session.status.displayName)
         .contextMenu {
-            Button(String(localized: "Open"), systemImage: "arrow.up.right") { onOpen(session.id) }
-            Button(session.archived ? String(localized: "Restore") : String(localized: "Archive"),
+            Button(L("Open"), systemImage: "arrow.up.right") { onOpen(session.id) }
+            Button(session.archived ? L("Restore") : L("Archive"),
                 systemImage: session.archived ? "tray.and.arrow.up" : "archivebox") { onArchive(session) }
                 .disabled(!canManage || session.id.hasPrefix("local:"))
-            Button(String(localized: "Copy session ID"), systemImage: "doc.on.doc") { UIPasteboard.general.string = session.id }
+            Button(L("Copy session ID"), systemImage: "doc.on.doc") { UIPasteboard.general.string = session.id }
         }
     }
 
@@ -284,7 +281,7 @@ struct DeviceSessionList: View {
         }
     }
     private var allScopesTitle: String {
-        showsProjectNames ? String(localized: "All projects") : String(localized: "All workspaces")
+        showsProjectNames ? L("All projects") : L("All workspaces")
     }
     private var scopeTitle: String {
         guard let project = projects.first(where: { $0.id == model.projectID }) else { return allScopesTitle }
@@ -311,11 +308,11 @@ struct DeviceSessionSelectionDock: View {
         HStack(spacing: 12) {
             Text("\(count) selected").font(.subheadline).monospacedDigit()
             Spacer(minLength: 0)
-            Button(String(localized: "Cancel"), action: onCancel).disabled(isWorking)
-            AppGlassButton(restores ? String(localized: "dashboard.device.unarchiveSelected") : String(localized: "dashboard.device.archiveSelected"), systemImage: restores ? "tray.and.arrow.up" : "archivebox",
+            Button(L("Cancel"), action: onCancel).disabled(isWorking)
+            AppGlassButton(restores ? L("dashboard.device.unarchiveSelected") : L("dashboard.device.archiveSelected"), systemImage: restores ? "tray.and.arrow.up" : "archivebox",
                 style: .prominent, isLoading: isWorking, disabled: disabled || count == 0, maxWidth: nil, action: onSubmit)
         }
-        .padding(14).glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .padding(14).compatGlassEffect(.regular, in: .rect(cornerRadius: 24))
         .padding(.horizontal, 24).padding(.bottom, 12).frame(maxWidth: 760).frame(maxWidth: .infinity)
     }
 }

@@ -53,17 +53,17 @@ struct ChatSidebarView: View {
                     ForEach(setup.requests) { request in
                         HStack {
                             if request.ready { AppSymbol("checkmark.circle") }
-                            else if request.error == nil { ProgressView().controlSize(.small) }
+                            else if request.error == nil { ProgressView().compatControlSize(.small) }
                             VStack(alignment: .leading) {
                                 Text(request.connector.name).font(.subheadline)
-                                Text(request.ready ? String(localized: "设备已连接") : request.error ?? String(localized: "等待设备连接…"))
-                                    .font(.caption).foregroundStyle(.secondary)
+                                Text(request.ready ? L("设备已连接") : request.error ?? L("等待设备连接…"))
+                                    .font(.caption).foregroundColor(.secondary)
                             }
                             Spacer(minLength: 0)
                             Menu {
-                                if request.ready { Button(String(localized: "配置 Agent")) { setup.configure(request.id) } }
-                                if request.error != nil { Button(String(localized: "重试")) { setup.retry(request.id) } }
-                                Button(request.ready ? String(localized: "稍后配置") : String(localized: "停止等待")) { setup.finish(request.id) }
+                                if request.ready { Button(L("配置 Agent")) { setup.configure(request.id) } }
+                                if request.error != nil { Button(L("重试")) { setup.retry(request.id) } }
+                                Button(request.ready ? L("稍后配置") : L("停止等待")) { setup.finish(request.id) }
                             } label: { AppSymbol("ellipsis").frame(width: 36, height: 36) }
                         }.padding(.horizontal, 10).padding(.vertical, 8)
                     }
@@ -87,7 +87,7 @@ struct ChatSidebarView: View {
                 if let repository {
                     if showsSessionList {
                         HStack {
-                            Text("Recent").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                            Text("Recent").font(.subheadline.weight(.semibold)).foregroundColor(.secondary)
                             Spacer()
                             ChatSidebarListMenu(showsSessionList: $showsSessionList,
                                 onShowArchives: { showsArchives = true }) {}
@@ -123,10 +123,10 @@ struct ChatSidebarView: View {
             .padding(.top, 10)
             .padding(.bottom, safeAreaInsets.bottom + 82)
         }
-        .refreshable { await repository?.refresh() }
-        .scrollIndicators(.hidden)
-        .scrollEdgeEffectStyle(.soft, for: .bottom)
-        .overlay(alignment: .bottom) {
+        .compatRefreshable { await repository?.refresh() }
+        .compatScrollIndicators(.hidden)
+        .compatScrollEdgeEffectStyle(.soft, for: .bottom)
+        .compatOverlay(alignment: .bottom) {
             if let account {
                 ChatSidebarBottomControls(
                     appState: appState,
@@ -161,9 +161,16 @@ struct ChatSidebarView: View {
     }
 }
 
+private struct ChatSidebarRowBleedKey: EnvironmentKey {
+    static let defaultValue = EdgeInsets()
+}
+
 extension EnvironmentValues {
     /// Distance from a sidebar row to the sidebar edges; selection bars bleed through it.
-    @Entry var chatSidebarRowBleed = EdgeInsets()
+    var chatSidebarRowBleed: EdgeInsets {
+        get { self[ChatSidebarRowBleedKey.self] }
+        set { self[ChatSidebarRowBleedKey.self] = newValue }
+    }
 }
 
 struct ChatSidebarListMenu<Filters: View>: View {
@@ -173,15 +180,15 @@ struct ChatSidebarListMenu<Filters: View>: View {
 
     var body: some View {
         Menu {
-            Picker(String(localized: "侧栏显示"), selection: $showsSessionList) {
-                Text(String(localized: "按项目")).tag(false)
-                Text(String(localized: "全部会话")).tag(true)
+            Picker(L("侧栏显示"), selection: $showsSessionList) {
+                Text(L("按项目")).tag(false)
+                Text(L("全部会话")).tag(true)
             }
             filters()
             Divider()
-            Button(String(localized: "归档会话"), systemImage: "archivebox", action: onShowArchives)
+            Button(L("归档会话"), systemImage: "archivebox", action: onShowArchives)
         } label: {
-            Label(String(localized: "列表选项"), appSymbol: "ellipsis")
+            Label(L("列表选项"), appSymbol: "ellipsis")
         }
         .menuStyle(.button)
         .menuIndicator(.hidden)
@@ -196,8 +203,8 @@ struct ChatSidebarIconControlStyle: ViewModifier {
         content
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
-            .buttonBorderShape(.circle)
-            .controlSize(.large)
+            .compatButtonBorderShape(.circle)
+            .compatControlSize(.large)
             .frame(width: 44, height: 44)
     }
 }
@@ -216,7 +223,7 @@ private struct ChatSidebarPairDeviceButton: View {
 
     var body: some View {
         Button(action: action) {
-            Label(String(localized: "Pair device"), appSymbol: "plus")
+            Label(L("Pair device"), appSymbol: "plus")
                 .font(.body.weight(.semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 10)
@@ -257,11 +264,11 @@ private struct ChatSidebarDeviceSection: View {
 }
 
 private struct ChatSidebarSessionSection: View {
-    let title: LocalizedStringResource?
+    let title: CompatLocalizedString?
     let sessions: [ChatSidebarSession]
     let selectedSessionId: V2SessionID?
     var isLoading = false
-    let emptyMessage: LocalizedStringResource
+    let emptyMessage: CompatLocalizedString
     var context: ((ChatSidebarSession, ChatSidebarSession?) -> String?)? = nil
     let onOpen: (V2SessionID) -> Void
     let onRename: (V2SessionID, String) -> Void
@@ -297,12 +304,12 @@ private struct ChatSidebarSessionSection: View {
 }
 
 private struct ChatSidebarSectionLabel: View {
-    let title: LocalizedStringResource
+    let title: CompatLocalizedString
 
     var body: some View {
         Text(title)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundColor(.secondary)
             .padding(.horizontal, 10)
             .padding(.top, 20)
             .padding(.bottom, 6)
@@ -326,7 +333,7 @@ private struct ChatSidebarDeviceRow: View {
 
                 Text(device.name)
                     .font(.system(.subheadline, design: .monospaced))
-                    .foregroundStyle(device.presence == .offline ? .secondary : .primary)
+                    .foregroundColor(device.presence == .offline ? .secondary : .primary)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -338,11 +345,11 @@ private struct ChatSidebarDeviceRow: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button(action: onOpen) {
-                Label(String(localized: "Open"), systemImage: "folder.fill")
+                Label(L("Open"), systemImage: "folder.fill")
             }
             Divider()
             Button(action: onCopyId) {
-                Label(String(localized: "Copy device ID"), systemImage: "doc.on.doc")
+                Label(L("Copy device ID"), systemImage: "doc.on.doc")
             }
         }
     }
@@ -371,14 +378,14 @@ struct ChatSidebarSessionRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
                     SessionAgentIcon(runtime: session.runtime, runtimeType: session.runtimeType)
-                        .foregroundStyle(.primary)
-                    Text(session.title ?? String(localized: "Untitled session"))
-                        .font(.body).foregroundStyle(.primary)
+                        .foregroundColor(.primary)
+                    Text(session.title ?? L("Untitled session"))
+                        .font(.body).foregroundColor(.primary)
                         .lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
                     ChatSidebarSessionIndicator(indicator: session.presentation.indicator)
                 }
                 if let context {
-                    Text(verbatim: context).font(.footnote).foregroundStyle(.secondary).lineLimit(1)
+                    Text(verbatim: context).font(.footnote).foregroundColor(.secondary).lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -388,13 +395,13 @@ struct ChatSidebarSessionRow: View {
             .padding(.vertical, context == nil ? 0 : 8)
             .frame(minHeight: 42)
             // Selection is a full-width bar reaching both sidebar edges.
-            .background {
+            .compatBackground {
                 if isSelected {
                     Rectangle().fill(AppTheme.sidebarSelectionFill(colorScheme))
                         .padding(.leading, -bleed.leading).padding(.trailing, -bleed.trailing)
                 }
             }
-            .overlay(alignment: .bottom) {
+            .compatOverlay(alignment: .bottom) {
                 if showsDivider { Divider().padding(.horizontal, 10).offset(y: 2) }
             }
             .contentShape(Rectangle())
@@ -402,31 +409,31 @@ struct ChatSidebarSessionRow: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button(action: onOpen) {
-                Label(String(localized: "Open"), systemImage: "folder.fill")
+                Label(L("Open"), systemImage: "folder.fill")
             }
             Button(action: beginRename) {
-                Label(String(localized: "Rename"), systemImage: "pencil")
+                Label(L("Rename"), systemImage: "pencil")
             }.disabled(session.id.hasPrefix("local:"))
             Button(action: onTogglePinned) {
                 if session.pinned {
-                    Label(String(localized: "Unpin"), systemImage: "pin")
+                    Label(L("Unpin"), systemImage: "pin")
                 } else {
-                    Label(String(localized: "Pin"), systemImage: "pin")
+                    Label(L("Pin"), systemImage: "pin")
                 }
             }
             .disabled(session.id.hasPrefix("local:"))
             Button(action: onArchive) {
-                Label(session.archived ? String(localized: "Restore") : String(localized: "Archive"), systemImage: "archivebox")
+                Label(session.archived ? L("Restore") : L("Archive"), systemImage: "archivebox")
             }.disabled(session.id.hasPrefix("local:"))
             Divider()
             Button(action: onCopyId) {
-                Label(String(localized: "Copy session ID"), systemImage: "doc.on.doc")
+                Label(L("Copy session ID"), systemImage: "doc.on.doc")
             }
         }
-        .alert(String(localized: "Rename session"), isPresented: $isRenaming) {
-            TextField(String(localized: "Session title"), text: $titleDraft)
-            Button(String(localized: "Cancel"), role: .cancel) {}
-            Button(String(localized: "Save"), action: submitRename)
+        .compatAlert(L("Rename session"), isPresented: $isRenaming, dismissOnTap: false) {
+            TextField(L("Session title"), text: $titleDraft)
+            Button(L("Cancel"), role: .cancel) {}
+            Button(L("Save"), action: submitRename)
                 .disabled(titleDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
@@ -448,15 +455,15 @@ struct ChatSidebarSessionIndicator: View {
     var body: some View {
         switch indicator {
         case .waitingApproval:
-            Text(String(localized: "等待批准")).font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.mint).padding(.horizontal, 8).padding(.vertical, 3)
-                .background(.mint.opacity(0.16), in: .capsule)
-                .fixedSize().accessibilityLabel(String(localized: "等待批准"))
+            Text(L("等待批准")).font(.system(size: 11, weight: .medium))
+                .foregroundColor(CompatPalette.mint).padding(.horizontal, 8).padding(.vertical, 3)
+                .background(Capsule().fill(CompatPalette.mint.opacity(0.16)))
+                .fixedSize().accessibilityLabel(L("等待批准"))
         case .running:
-            ProgressView().controlSize(.mini).tint(.primary)
-                .frame(width: 14, height: 14).accessibilityLabel(String(localized: "运行中"))
+            ProgressView().compatControlSize(.mini).accentColor(.primary)
+                .frame(width: 14, height: 14).accessibilityLabel(L("运行中"))
         case .unread:
-            Circle().fill(.green).frame(width: 8, height: 8).accessibilityLabel(String(localized: "未读"))
+            Circle().fill(.green).frame(width: 8, height: 8).accessibilityLabel(L("未读"))
         case .none:
             EmptyView()
         }
@@ -464,28 +471,28 @@ struct ChatSidebarSessionIndicator: View {
 }
 
 private struct ChatSidebarLoadingRow: View {
-    let title: LocalizedStringResource
+    let title: CompatLocalizedString
 
     var body: some View {
         HStack(spacing: 8) {
             ProgressView()
-                .controlSize(.small)
+                .compatControlSize(.small)
             Text(title)
         }
         .font(.caption)
-        .foregroundStyle(.secondary)
+        .foregroundColor(.secondary)
         .padding(.horizontal, 10)
         .frame(minHeight: 38)
     }
 }
 
 private struct ChatSidebarEmptyRow: View {
-    let title: LocalizedStringResource
+    let title: CompatLocalizedString
 
     var body: some View {
         Text(title)
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundColor(.secondary)
             .padding(.horizontal, 10)
             .frame(minHeight: 38)
     }
@@ -501,7 +508,7 @@ private struct ChatSidebarBottomControls: View {
     var body: some View {
         HStack(spacing: 10) {
             AppGlassButton(
-                String(localized: "New session"),
+                L("New session"),
                 systemImage: "square.and.pencil",
                 style: .prominent,
                 maxWidth: nil,
@@ -515,9 +522,9 @@ private struct ChatSidebarBottomControls: View {
             } label: {
                 ChatSidebarAvatar(account: account)
             }
-            .buttonStyle(.glass)
-            .buttonBorderShape(.circle)
-            .accessibilityLabel(String(localized: "Account"))
+            .buttonStyle(CompatBorderedButtonStyle())
+            .compatButtonBorderShape(.circle)
+            .accessibilityLabel(L("Account"))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $isShowingSettings) {

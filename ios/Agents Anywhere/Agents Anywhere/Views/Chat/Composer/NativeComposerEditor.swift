@@ -1,12 +1,13 @@
 import SwiftUI
+import Combine
 import UIKit
 
 /// Keep this controller and the underlying UITextView alive while the glass
 /// container changes layout. Never derive submission from SwiftUI .onSubmit.
-@MainActor @Observable
-final class ComposerEditorController {
-    @ObservationIgnored weak var textView: ComposerTextView?
-    @ObservationIgnored weak var draft: ComposerDraft?
+@MainActor
+final class ComposerEditorController: ObservableObject {
+    weak var textView: ComposerTextView?
+    weak var draft: ComposerDraft?
 
     func finishEditing() {
         guard let textView else { return }
@@ -39,7 +40,7 @@ final class ComposerTextView: UITextView {
     var commandSend: (() -> Void)?
 
     override var keyCommands: [UIKeyCommand]? {
-        let send = UIKeyCommand(title: String(localized: "发送"), action: #selector(sendWithCommandReturn), input: "\r", modifierFlags: .command)
+        let send = UIKeyCommand(title: L("发送"), action: #selector(sendWithCommandReturn), input: "\r", modifierFlags: .command)
         send.wantsPriorityOverSystemBehavior = true
         return (super.keyCommands ?? []) + [send]
     }
@@ -53,7 +54,7 @@ final class ComposerTextView: UITextView {
 }
 
 struct NativeComposerEditor: UIViewRepresentable {
-    @Bindable var draft: ComposerDraft
+    @ObservedObject var draft: ComposerDraft
     let controller: ComposerEditorController
     let maximumHeight: CGFloat
     let onCommandSend: () -> Void
@@ -76,8 +77,8 @@ struct NativeComposerEditor: UIViewRepresentable {
         view.showsVerticalScrollIndicator = true
         view.keyboardDismissMode = .none
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        view.accessibilityLabel = String(localized: "消息")
-        view.accessibilityHint = String(localized: "回车换行，Command 加回车发送。")
+        view.accessibilityLabel = L("消息")
+        view.accessibilityHint = L("回车换行，Command 加回车发送。")
         view.accessibilityIdentifier = "chat.composer.editor"
         controller.textView = view; controller.draft = draft
         return view

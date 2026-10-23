@@ -17,10 +17,10 @@ struct OneTimeCodeField: View {
         TextField(String(repeating: "0", count: length), text: digits)
             .textFieldStyle(.plain)
             .font(.system(.largeTitle, design: .monospaced).weight(.medium))
-            .tracking(8)
+            .compatTracking(8)
             .multilineTextAlignment(.center)
             .keyboardType(.numberPad).textContentType(.oneTimeCode)
-            .textInputAutocapitalization(.never).autocorrectionDisabled()
+            .compatTextInputAutocapitalization(.never).compatAutocorrectionDisabled()
             .padding(.vertical, 10)
             .accessibilityLabel(title)
     }

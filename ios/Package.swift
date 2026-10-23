@@ -1,9 +1,9 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
     name: "AgentsAnywhereClient",
-    platforms: [.macOS(.v15), .iOS("26.5")],
+    platforms: [.macOS(.v13), .iOS(.v14)],
     targets: [
         .target(
             name: "ClientCore",
@@ -12,15 +12,13 @@ let package = Package(
                 "App", "Assets.xcassets", "Resources", "Services", "Stores", "Views",
                 "ios-dark.icon", "Business/AccountAvatarProcessor.swift",
             ],
-            sources: ["API", "Network", "Models", "Domain", "Business", "Repositories"],
-            swiftSettings: [.defaultIsolation(MainActor.self)]
+            sources: ["API", "Network", "Models", "Domain", "Business", "Repositories"]
         ),
         .testTarget(
             name: "ClientCoreTests",
             dependencies: ["ClientCore"],
             path: "Tests/ClientCoreTests",
-            resources: [.copy("Fixtures")],
-            swiftSettings: [.defaultIsolation(MainActor.self)]
+            resources: [.copy("Fixtures")]
         ),
     ],
     swiftLanguageModes: [.v5]

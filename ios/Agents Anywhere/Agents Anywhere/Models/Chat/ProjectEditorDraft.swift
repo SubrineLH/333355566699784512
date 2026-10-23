@@ -1,14 +1,14 @@
 import Foundation
-import Observation
+import Combine
 
 /// Editing a project is entirely local until the form's final submit action.
-@MainActor @Observable final class ProjectEditorDraft {
+@MainActor final class ProjectEditorDraft: ObservableObject {
     let original: V2Project?
-    private(set) var connectorID: String
-    private(set) var path: String
-    private(set) var name: String
-    private(set) var nameEdited = false
-    @ObservationIgnored private let initialConnectorID: String
+    @Published private(set) var connectorID: String
+    @Published private(set) var path: String
+    @Published private(set) var name: String
+    @Published private(set) var nameEdited = false
+    private let initialConnectorID: String
 
     init(project: V2Project? = nil, connectorID: String = "") {
         original = project

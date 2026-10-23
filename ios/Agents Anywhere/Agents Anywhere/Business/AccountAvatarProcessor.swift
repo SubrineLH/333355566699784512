@@ -9,11 +9,11 @@ enum AccountAvatarProcessingError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidImage:
-            String(localized: "The selected file is not a supported image.")
+            L("The selected file is not a supported image.")
         case .imageTooLarge:
-            String(localized: "Choose an image smaller than 8 MB.")
+            L("Choose an image smaller than 8 MB.")
         case .encodingFailed:
-            String(localized: "The avatar image could not be prepared.")
+            L("The avatar image could not be prepared.")
         }
     }
 }

@@ -17,7 +17,7 @@ struct V2WorkspaceFilesService {
         if let error = response.error, !response.ok { throw error }
         guard response.ok, let directory = response.result else {
             throw V2BusinessError.workspaceFilesUnavailable(
-                message: String(localized: "The workspace directory is unavailable.")
+                message: L("The workspace directory is unavailable.")
             )
         }
         return directory

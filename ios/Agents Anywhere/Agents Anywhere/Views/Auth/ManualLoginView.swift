@@ -3,25 +3,25 @@ import UIKit
 
 struct ManualLoginView: View {
     let appState: AppState
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     @StateObject private var oauthLogin = OAuthLoginCoordinator()
     @State private var path: [ServerLoginRoute] = []
     @State private var isClosing = false
     @State private var loginRequest: WebLoginRequest?
     @State private var statusMessage: String?
     @State private var alertMessage: String?
-    @State private var alertTitle = String(localized: "Sign In Failed")
+    @State private var alertTitle = L("Sign In Failed")
 
     static let cloudServer = "https://web.agents-anywhere.com"
 
     var onDashboardRequested: () -> Void = {}
 
     var body: some View {
-        NavigationStack(path: $path) {
-            AuthScreen(title: String(localized: "Manual Login"), onCancel: close) {
+        CompatNavigationStack(path: $path) {
+            AuthScreen(title: L("Manual Login"), onCancel: close) {
                 VStack(spacing: 16) {
                     AuthPrimaryButton(
-                        title: String(localized: "Connect to Anywhere Cloud"),
+                        title: L("Connect to Anywhere Cloud"),
                         systemImage: "cloud",
                         isLoading: isSigningIn,
                         disabled: isSigningIn,
@@ -29,7 +29,7 @@ struct ManualLoginView: View {
                         startSignIn(server: Self.cloudServer)
                     }
 
-                    AuthGlassButton(String(localized: "Connect to your self-hosted instance"), systemImage: "server.rack") {
+                    AuthGlassButton(L("Connect to your self-hosted instance"), systemImage: "server.rack") {
                         statusMessage = nil
                         path.append(.selfHosted)
                     }
@@ -40,56 +40,56 @@ struct ManualLoginView: View {
                 .frame(maxWidth: 520)
                 .frame(maxWidth: .infinity)
             }
-            .navigationDestination(for: ServerLoginRoute.self) { route in
-                switch route {
-                case .selfHosted:
-                    ServerAddressView(
-                        isSigningIn: isSigningIn,
-                        onCancel: close,
-                        onConnect: { startSignIn(server: $0) },
-                    ) {
-                        loginStatus
-                    }
-                case .success:
-                    AuthResultView(
-                        title: String(localized: "Login Success"),
-                        message: String(localized: "Your iPhone is signed in. Go to your dashboard to continue."),
-                        buttonTitle: String(localized: "Go to Dashboard"),
-                        buttonSystemImage: "arrow.right",
-                        symbolName: "checkmark.circle.fill",
-                        symbolColor: .green,
-                        isLoading: isClosing,
-                    ) {
-                        guard !isClosing else { return }
-                        isClosing = true
-                        onDashboardRequested()
-                    }
-                    .navigationBarBackButtonHidden(true)
+            }
+        } destination: { route in
+            switch route {
+            case .selfHosted:
+                ServerAddressView(
+                    isSigningIn: isSigningIn,
+                    onCancel: close,
+                    onConnect: { startSignIn(server: $0) },
+                ) {
+                    loginStatus
                 }
+            case .success:
+                AuthResultView(
+                    title: L("Login Success"),
+                    message: L("Your iPhone is signed in. Go to your dashboard to continue."),
+                    buttonTitle: L("Go to Dashboard"),
+                    buttonSystemImage: "arrow.right",
+                    symbolName: "checkmark.circle.fill",
+                    symbolColor: .green,
+                    isLoading: isClosing,
+                ) {
+                    guard !isClosing else { return }
+                    isClosing = true
+                    onDashboardRequested()
+                }
+                .navigationBarBackButtonHidden(true)
             }
         }
-        .task(id: loginRequest?.id) {
+        .compatTask(id: loginRequest?.id) {
             if let request = loginRequest { await signIn(request) }
         }
-        .onChange(of: path) { previous, next in
+        .compatOnChange(of: path) { previous, next in
             if next.count < previous.count {
                 cancelSignIn()
                 statusMessage = nil
             }
         }
         .onDisappear { cancelSignIn() }
-        .alert(alertTitle, isPresented: Binding(
+        .compatAlert(alertTitle, isPresented: Binding(
             get: { alertMessage != nil },
             set: { if !$0 { alertMessage = nil } },
         )) {
             if appState.authNeedsLocalNetworkSettings {
-                Button(String(localized: "Open Settings")) {
+                Button(L("Open Settings")) {
                     if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                 }
             }
-            Button(String(localized: "OK"), role: .cancel) {}
+            Button(L("OK"), role: .cancel) {}
         } message: {
-            Text(alertMessage ?? String(localized: "The server could not be reached."))
+            Text(alertMessage ?? L("The server could not be reached."))
         }
         .appSheetPresentation(.compact)
     }
@@ -98,10 +98,10 @@ struct ManualLoginView: View {
 
     @ViewBuilder private var loginStatus: some View {
         if isSigningIn {
-            Button(String(localized: "Cancel Sign In"), action: cancelSignIn)
+            Button(L("Cancel Sign In"), action: cancelSignIn)
                 .font(.subheadline)
         }
-        if let statusMessage { Text(statusMessage).font(.footnote).foregroundStyle(.secondary) }
+        if let statusMessage { Text(statusMessage).font(.footnote).foregroundColor(.secondary) }
     }
 
     private func startSignIn(server: String) {
@@ -118,7 +118,7 @@ struct ManualLoginView: View {
 
     private func close() {
         cancelSignIn()
-        dismiss()
+        presentationMode.wrappedValue.dismiss()
     }
 
     private func signIn(_ request: WebLoginRequest) async {
@@ -127,8 +127,8 @@ struct ManualLoginView: View {
         defer { if loginRequest?.id == request.id { loginRequest = nil } }
         guard let url = await appState.checkServer(request.server) else {
             guard isCurrent(request) else { return }
-            alertTitle = appState.authNeedsLocalNetworkSettings ? String(localized: "Local Network Access") : String(localized: "Server Unavailable")
-            alertMessage = appState.authError ?? String(localized: "The server could not be reached.")
+            alertTitle = appState.authNeedsLocalNetworkSettings ? L("Local Network Access") : L("Server Unavailable")
+            alertMessage = appState.authError ?? L("The server could not be reached.")
             return
         }
         guard isCurrent(request) else { return }
@@ -138,14 +138,14 @@ struct ManualLoginView: View {
             await appState.completeOAuthLogin(serverURL: url, token: token, showSignedInRoute: false)
             guard isCurrent(request) else { return }
             if appState.authError == nil, appState.me != nil { path.append(.success) }
-            else { alertTitle = String(localized: "Sign In Failed"); alertMessage = appState.authError ?? String(localized: "The login could not be completed.") }
+            else { alertTitle = L("Sign In Failed"); alertMessage = appState.authError ?? L("The login could not be completed.") }
         } catch is CancellationError { }
         catch OAuthLoginError.cancelled {
             if isCurrent(request) { statusMessage = OAuthLoginError.cancelled.localizedDescription }
         }
         catch {
             guard isCurrent(request) else { return }
-            alertTitle = String(localized: "Sign In Failed"); alertMessage = error.localizedDescription
+            alertTitle = L("Sign In Failed"); alertMessage = error.localizedDescription
         }
     }
 
@@ -173,8 +173,8 @@ private struct ServerAddressView<Status: View>: View {
 
     var body: some View {
         AuthScreen(
-            title: String(localized: "Enter Server"),
-            subtitle: String(localized: "Enter your server address, then sign in with the server's web login."),
+            title: L("Enter Server"),
+            subtitle: L("Enter your server address, then sign in with the server's web login."),
             onCancel: onCancel,
         ) {
             VStack(alignment: .leading, spacing: 16) {
@@ -189,16 +189,16 @@ private struct ServerAddressView<Status: View>: View {
                 .disabled(isSigningIn)
 
                 AuthPrimaryButton(
-                    title: String(localized: "Continue in Browser"),
+                    title: L("Continue in Browser"),
                     isLoading: isSigningIn,
                     disabled: !canContinue,
                     action: connect,
                 )
 
                 status
-                Text(String(localized: "The server login opens in a secure web session. You can use password login or any OAuth provider configured on that server."))
+                Text(L("The server login opens in a secure web session. You can use password login or any OAuth provider configured on that server."))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -229,16 +229,16 @@ private struct UnderlinedTextField: View {
     var body: some View {
         TextField(placeholder, text: $text)
             .textFieldStyle(.plain)
-            .textInputAutocapitalization(.never)
+            .compatTextInputAutocapitalization(.never)
             .keyboardType(keyboardType)
-            .autocorrectionDisabled()
+            .compatAutocorrectionDisabled()
             .textContentType(textContentType)
-            .submitLabel(submitLabel)
-            .onSubmit(onSubmit)
+            .compatSubmitLabel(submitLabel)
+            .compatOnSubmit(onSubmit)
             .font(.title3)
             .padding(.vertical, 11)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .bottom) {
+            .compatOverlay(alignment: .bottom) {
                 Divider()
             }
     }

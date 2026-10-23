@@ -1,16 +1,15 @@
 import Foundation
-import Observation
+import Combine
 
 @MainActor
-@Observable
-final class WorkspaceDirectoryModel {
-    private(set) var entries: [V2WorkspaceEntry] = []
-    private(set) var resolvedPath = ""
-    private(set) var isLoading = false
-    private(set) var isTruncated = false
-    private(set) var selectablePath: String?
-    @ObservationIgnored private var revision = 0
-    var errorMessage: String?
+final class WorkspaceDirectoryModel: ObservableObject {
+    @Published private(set) var entries: [V2WorkspaceEntry] = []
+    @Published private(set) var resolvedPath = ""
+    @Published private(set) var isLoading = false
+    @Published private(set) var isTruncated = false
+    @Published private(set) var selectablePath: String?
+    private var revision = 0
+    @Published var errorMessage: String?
 
     /// Reads and sorts a directory through the workspace-files business service.
     func load(

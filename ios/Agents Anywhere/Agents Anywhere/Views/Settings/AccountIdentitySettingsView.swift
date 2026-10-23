@@ -4,8 +4,8 @@ struct AccountIdentitySettingsView: View {
     enum Mode { case nickname, email }
     let mode: Mode
     @Binding var draft: AccountIdentityDraft
-    @Environment(AppState.self) private var appState
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.presentationMode) private var presentationMode
     @State private var config: AuthConfig?
     @State private var isLoadingConfig = false
     @State private var cooldown = 0
@@ -13,7 +13,7 @@ struct AccountIdentitySettingsView: View {
     @State private var error: String?
 
     private var normalized: String { draft.text.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var title: String { mode == .nickname ? String(localized: "Nickname") : String(localized: "Email") }
+    private var title: String { mode == .nickname ? L("Nickname") : L("Email") }
     private var validEmail: Bool { normalized.range(of: #"^[^\s@]+@[^\s@]+\.[^\s@]+$"#, options: .regularExpression) != nil }
     private var verificationRequired: Bool { config?.emailVerificationRequired == true }
     private var canSave: Bool {
@@ -27,32 +27,32 @@ struct AccountIdentitySettingsView: View {
                 TextField(title, text: $draft.text)
                     .textContentType(mode == .nickname ? .nickname : .emailAddress)
                     .keyboardType(mode == .email ? .emailAddress : .default)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .onChange(of: draft.text) { _, _ in draft.code = ""; codeSent = false }
+                    .compatTextInputAutocapitalization(.never).compatAutocorrectionDisabled()
+                    .compatOnChange(of: draft.text) { _, _ in draft.code = ""; codeSent = false }
             }
             if mode == .email {
                 if draft.text == draft.initialText && !draft.initialText.isEmpty {
                     Section {
-                        LabeledContent(String(localized: "Email status"),
-                            value: appState.me?.emailVerified == true ? String(localized: "Verified") : String(localized: "Not verified"))
+                        CompatLabeledContent(L("Email status"),
+                            value: appState.me?.emailVerified == true ? L("Verified") : L("Not verified"))
                     }
                 }
                 Section {
                     if isLoadingConfig {
-                        ProgressView(String(localized: "Loading email settings…"))
+                        ProgressView(L("Loading email settings…"))
                     } else if config == nil {
-                        Button(String(localized: "Retry loading email settings")) { Task { await loadConfig() } }
+                        Button(L("Retry loading email settings")) { Task { await loadConfig() } }
                     } else if verificationRequired {
-                        TextField(String(localized: "Email verification code"), text: $draft.code)
+                        TextField(L("Email verification code"), text: $draft.code)
                             .textContentType(.oneTimeCode).keyboardType(.numberPad)
-                            .onChange(of: draft.code) { _, _ in draft.code = String(draft.code.filter(\.isNumber).prefix(6)) }
-                        Button(cooldown > 0 ? String(localized: "Resend in \(cooldown) s") : String(localized: "Send verification code"), action: sendCode)
+                            .compatOnChange(of: draft.code) { _, _ in draft.code = String(draft.code.filter(\.isNumber).prefix(6)) }
+                        Button(cooldown > 0 ? L("Resend in \(cooldown) s") : L("Send verification code"), action: sendCode)
                             .disabled(!validEmail || cooldown > 0 || draft.isWorking)
-                        if codeSent { Text(String(localized: "Code sent. Check your inbox.")).foregroundStyle(.secondary) }
+                        if codeSent { Text(L("Code sent. Check your inbox.")).foregroundColor(.secondary) }
                     }
                 } footer: {
                     if let config, !config.emailVerificationRequired {
-                        Text(String(localized: "This service accepts email without a verification code."))
+                        Text(L("This service accepts email without a verification code."))
                     }
                 }
             }
@@ -61,7 +61,7 @@ struct AccountIdentitySettingsView: View {
         .disabled(draft.isWorking)
         .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
         .toolbar { SheetSaveToolbar(isWorking: draft.isWorking, saveDisabled: !canSave, onSave: save) }
-        .task {
+        .compatTask {
             if !draft.didInitialize {
                 draft.didInitialize = true
                 draft.text = mode == .nickname ? appState.me?.displayName ?? "" : appState.me?.email ?? ""
@@ -69,12 +69,12 @@ struct AccountIdentitySettingsView: View {
             }
             if mode == .email { await loadConfig() }
         }
-        .task(id: cooldown) {
+        .compatTask(id: cooldown) {
             guard cooldown > 0 else { return }
-            do { try await Task.sleep(for: .seconds(1)); cooldown -= 1 } catch {}
+            do { try await compatSleep(seconds: 1); cooldown -= 1 } catch {}
         }
-        .alert(String(localized: "Account update failed"), isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
-            Button(String(localized: "OK"), role: .cancel) { error = nil }
+        .compatAlert(L("Account update failed"), isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+            Button(L("OK"), role: .cancel) { error = nil }
         } message: { Text(error ?? "") }
     }
 
@@ -95,7 +95,7 @@ struct AccountIdentitySettingsView: View {
             do {
                 if mode == .nickname { try await appState.updateAccountProfile(displayName: normalized) }
                 else { try await appState.bindAccountEmail(email: normalized, code: verificationRequired ? draft.code : nil) }
-                draft.initialText = draft.text; draft.code = ""; dismiss()
+                draft.initialText = draft.text; draft.code = ""; presentationMode.wrappedValue.dismiss()
             } catch { self.error = error.localizedDescription }
         }
     }

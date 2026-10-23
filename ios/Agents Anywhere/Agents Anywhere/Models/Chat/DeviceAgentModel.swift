@@ -1,19 +1,19 @@
 import Foundation
-import Observation
+import Combine
 
 /// Shared by device management and the post-pairing sheet. Types describe what
 /// can be added; instances describe what actually exists on the device.
-@MainActor @Observable
-final class DeviceAgentModel {
+@MainActor
+final class DeviceAgentModel: ObservableObject {
     let connectorID: String
-    private(set) var inventory = V2RuntimeInventory(types: [], instances: [])
-    private(set) var isLoading = false
-    private(set) var busyID: String?
-    private(set) var error: String?
-    private(set) var connected = false
-    @ObservationIgnored private let service: V2DeviceManagementService
-    @ObservationIgnored private var version = 0
-    @ObservationIgnored private var isValid = true
+    @Published private(set) var inventory = V2RuntimeInventory(types: [], instances: [])
+    @Published private(set) var isLoading = false
+    @Published private(set) var busyID: String?
+    @Published private(set) var error: String?
+    @Published private(set) var connected = false
+    private let service: V2DeviceManagementService
+    private var version = 0
+    private var isValid = true
 
     init(connectorID: String, service: V2DeviceManagementService) {
         self.connectorID = connectorID; self.service = service
@@ -64,7 +64,7 @@ final class DeviceAgentModel {
 
     private func perform(_ id: String, action: () async throws -> Void) async throws {
         guard isValid, connected else { throw URLError(.notConnectedToInternet) }
-        guard busyID == nil else { throw V2BusinessError.workspaceFilesUnavailable(message: String(localized: "请等待当前 Agent 操作完成。")) }
+        guard busyID == nil else { throw V2BusinessError.workspaceFilesUnavailable(message: L("请等待当前 Agent 操作完成。")) }
         busyID = id; error = nil; version += 1; isLoading = false
         defer { busyID = nil }
         do {

@@ -30,7 +30,7 @@ private struct AnnouncementGate: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .task(id: checkKey) { await check() }
+            .compatTask(id: checkKey) { await check() }
             .sheet(isPresented: presented) {
                 if let pending {
                     AnnouncementSheet(announcement: pending, onAcknowledge: acknowledge)
@@ -48,7 +48,7 @@ private struct AnnouncementGate: ViewModifier {
     private func check() async {
         guard scenePhase == .active, let target else { return }
         if pendingServer != target { pending = nil; pendingServer = nil; lastCheck = nil }
-        if let lastCheck, Date.now.timeIntervalSince(lastCheck) < 60 { return }
+        if let lastCheck, Date().timeIntervalSince(lastCheck) < 60 { return }
         lastCheck = .now
         do {
             let current = try await APIClient(serverURL: target).announcement()
@@ -71,27 +71,27 @@ private struct AnnouncementSheet: View {
     let onAcknowledge: () -> Void
 
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if let date = announcement.publishedDate {
-                        Text(String(localized: "Published \(date.formatted(date: .abbreviated, time: .shortened))"))
+                        Text(L("Published \(compatFormatted(date, dateStyle: .medium, timeStyle: .short))"))
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.secondary)
                     }
                     ChatMarkdownView(text: announcement.markdown)
-                        .textSelection(.enabled)
+                        .compatTextSelection()
                 }
                 .frame(maxWidth: 640, alignment: .leading)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
             }
-            .navigationTitle(String(localized: "Announcement"))
+            .navigationTitle(L("Announcement"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { SheetCloseToolbar(action: onAcknowledge) }
-            .safeAreaInset(edge: .bottom) {
-                AuthPrimaryButton(title: String(localized: "Got it"), systemImage: "checkmark", action: onAcknowledge)
+            .compatSafeAreaInset(edge: .bottom) {
+                AuthPrimaryButton(title: L("Got it"), systemImage: "checkmark", action: onAcknowledge)
                     .frame(maxWidth: 340)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)

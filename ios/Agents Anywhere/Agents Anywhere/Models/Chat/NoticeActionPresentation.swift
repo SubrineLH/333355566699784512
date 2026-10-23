@@ -19,12 +19,12 @@ struct NoticeActionPresentation {
     }
     static func title(_ action: V2RuntimeNoticeAction, notice: V2RuntimeNotice) -> String {
         switch action.id {
-        case "approve": return String(localized: "批准")
-        case "approve_for_session": return String(localized: "本会话批准")
-        case "reject": return String(localized: "拒绝")
-        case "cancel": return notice.interactionType == "approval" ? String(localized: "取消本轮") : String(localized: "取消")
-        case "dismiss": return String(localized: "取消")
-        case "submit": return String(localized: "提交")
+        case "approve": return L("批准")
+        case "approve_for_session": return L("本会话批准")
+        case "reject": return L("拒绝")
+        case "cancel": return notice.interactionType == "approval" ? L("取消本轮") : L("取消")
+        case "dismiss": return L("取消")
+        case "submit": return L("提交")
         default: return action.label
         }
     }

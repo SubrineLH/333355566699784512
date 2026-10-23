@@ -16,8 +16,8 @@ struct SettingsRow: View {
     var value: String?
     var body: some View {
         if let value, !value.isEmpty {
-            LabeledContent {
-                Text(value).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            CompatLabeledContent {
+                Text(value).foregroundColor(.secondary).lineLimit(1).truncationMode(.middle)
             } label: {
                 Label(title, appSymbol: symbol)
             }
@@ -46,14 +46,14 @@ struct SettingsLanguageView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent(String(localized: "Current language"), value: Self.currentLanguage)
-                Button(String(localized: "Open iOS Settings")) {
+                CompatLabeledContent(L("Current language"), value: Self.currentLanguage)
+                Button(L("Open iOS Settings")) {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }
             } footer: {
-                Text(String(localized: "Choose English or Simplified Chinese in the app's iOS language settings. Without an override, the app follows your preferred system language."))
+                Text(L("Choose English or Simplified Chinese in the app's iOS language settings. Without an override, the app follows your preferred system language."))
             }
-        }.settingsPage(String(localized: "Language"))
+        }.settingsPage(L("Language"))
     }
     static var currentLanguage: String {
         Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true ? "简体中文" : "English"
@@ -61,22 +61,22 @@ struct SettingsLanguageView: View {
 }
 
 struct SettingsServerView: View {
-    @Environment(AppState.self) private var appState
+    @EnvironmentObject private var appState: AppState
     var body: some View {
         List {
-            Section(String(localized: "Connection")) {
-                LabeledContent(String(localized: "Status"), value: appState.isServerConnected ? String(localized: "Connected") : String(localized: "Offline"))
+            Section(L("Connection")) {
+                CompatLabeledContent(L("Status"), value: appState.isServerConnected ? L("Connected") : L("Offline"))
                 if let url = appState.serverURL {
-                    Text(url.absoluteString).font(.callout.monospaced()).textSelection(.enabled)
-                    Button(String(localized: "Copy server address"), appSymbol: "doc.on.doc") {
+                    Text(url.absoluteString).font(Font.system(.callout, design: .monospaced)).compatTextSelection()
+                    Button(L("Copy server address"), appSymbol: "doc.on.doc") {
                         UIPasteboard.general.string = url.absoluteString
                     }
                 }
             }
             if let error = appState.restoreConnectionError {
-                Section { Text(error).foregroundStyle(.secondary) }
+                Section { Text(error).foregroundColor(.secondary) }
             }
-        }.settingsPage(String(localized: "Server"))
+        }.settingsPage(L("Server"))
     }
 }
 
@@ -84,17 +84,17 @@ struct SettingsAboutView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent(String(localized: "Version"), value: Self.version)
-                LabeledContent(String(localized: "Build"), value: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—")
+                CompatLabeledContent(L("Version"), value: Self.version)
+                CompatLabeledContent(L("Build"), value: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—")
             }
             Section {
                 NavigationLink {
                     ScrollView {
-                        Text(license).font(.footnote.monospaced()).textSelection(.enabled).padding(22)
-                    }.settingsPage(String(localized: "Open-source notices"))
-                } label: { SettingsRow(title: String(localized: "Open-source notices"), symbol: "doc.text") }
+                        Text(license).font(Font.system(.footnote, design: .monospaced)).compatTextSelection().padding(22)
+                    }.settingsPage(L("Open-source notices"))
+                } label: { SettingsRow(title: L("Open-source notices"), symbol: "doc.text") }
             }
-        }.settingsPage(String(localized: "About"))
+        }.settingsPage(L("About"))
     }
     static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—" }
     private var license: String {

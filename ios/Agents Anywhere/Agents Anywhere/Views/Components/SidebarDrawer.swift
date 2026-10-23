@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 #if canImport(UIKit)
 import UIKit
@@ -81,7 +82,7 @@ private struct SidebarDrawerSettledTask<ID: Equatable>: ViewModifier {
 
     func body(content: Content) -> some View {
         let settled = !isTransitioning && !obscuresDetail
-        content.task(id: Key(id: id, settled: settled)) { await action(settled) }
+        content.compatTask(id: Key(id: id, settled: settled)) { await action(settled) }
     }
 }
 
@@ -256,7 +257,7 @@ private struct SidebarDrawerInteractive<
                     .onTapGesture(perform: closeFromOverlay)
                     .allowsHitTesting(interaction.acceptsSidebarTouches)
                     .accessibilityHidden(!interaction.acceptsSidebarTouches)
-                    .accessibilityLabel(String(localized: "关闭侧栏"))
+                    .accessibilityLabel(L("关闭侧栏"))
                     .accessibilityAddTraits(.isButton)
 
 #if !canImport(UIKit)
@@ -301,7 +302,7 @@ private struct SidebarDrawerInteractive<
                 isEnabled: !usesOpeningEdgeGestureRegion
             )
 #endif
-            .onChange(of: isOpen) { _, newValue in
+            .compatOnChange(of: isOpen) { _, newValue in
                 synchronizeProgress(with: newValue)
             }
         }
@@ -310,7 +311,7 @@ private struct SidebarDrawerInteractive<
         .environment(\.sidebarDrawerObscuresDetail, isOpen || motion.restingProgress > 0)
         .environment(\.sidebarDrawerIsTransitioning, isAnimating || dragStartProgress != nil
             || motion.restingProgress != (isOpen ? 1 : 0))
-        .sensoryFeedback(
+        .compatSensoryFeedback(
             .impact(weight: .light, intensity: 1),
             trigger: feedbackTrigger
         )
@@ -519,7 +520,7 @@ private struct SidebarDrawerNativeSplitView<
     private let mainContent: (EdgeInsets) -> MainContent
     private let sidebarHeaderEdgeEffectStyle: ScrollEdgeEffectStyle
 
-    @State private var columnVisibility: NavigationSplitViewVisibility
+    @State private var columnVisibility: CompatColumnVisibility
     @State private var isAnimating = false
     @State private var animationGeneration = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -540,7 +541,7 @@ private struct SidebarDrawerNativeSplitView<
     }
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        CompatSplitView(columnVisibility: $columnVisibility) {
             GeometryReader { geometry in
                 let safeAreaInsets = geometry.safeAreaInsets
 
@@ -549,23 +550,23 @@ private struct SidebarDrawerNativeSplitView<
                     header: sidebarHeader(safeAreaInsets),
                     content: sidebarContent(safeAreaInsets)
                 )
-                .toolbar(removing: .sidebarToggle)
+                .compatToolbarRemoving( .sidebarToggle)
             }
-            .toolbar(.hidden, for: .navigationBar)
-            .navigationSplitViewColumnWidth(min: 240, ideal: 300, max: 360)
+            .compatToolbarVisibility(.hidden, for: .navigationBar)
+            .compatSplitColumnWidth(min: 240, ideal: 300, max: 360)
         } detail: {
             GeometryReader { geometry in
                 mainContent(geometry.safeAreaInsets)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationSplitViewStyle(.balanced)
+        .compatSplitViewStyle()
         .environment(\.sidebarDrawerPresentation, .nativeSidebar)
         .environment(\.sidebarDrawerIsTransitioning, isAnimating || columnsNeedUpdate)
-        .onChange(of: isOpen) { _, newValue in
+        .compatOnChange(of: isOpen) { _, newValue in
             updateColumns(open: newValue)
         }
-        .onChange(of: columnVisibility) { _, newValue in
+        .compatOnChange(of: columnVisibility) { _, newValue in
             switch newValue {
             case .all, .doubleColumn:
                 if !isOpen {
@@ -587,9 +588,12 @@ private struct SidebarDrawerNativeSplitView<
         animationGeneration &+= 1
         let generation = animationGeneration
         isAnimating = true
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.3), completionCriteria: .removed) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
             columnVisibility = open ? .all : .detailOnly
-        } completion: {
+        }
+        // The completion hang of `withAnimation(_:completionCriteria:_:completion:)`
+        // is iOS 17; a matching delay reproduces the transition bookkeeping.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
             if animationGeneration == generation { isAnimating = false }
         }
     }
@@ -611,7 +615,7 @@ private struct SidebarDrawerNativeSidebar<Header: View, Content: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .scrollEdgeEffectStyle(edgeEffectStyle, for: .top)
+            .compatScrollEdgeEffectStyle(edgeEffectStyle, for: .top)
             .safeAreaBar(edge: .top, spacing: 0) {
                 SidebarDrawerHeaderBar(
                     safeAreaInsets: EdgeInsets(),
@@ -645,7 +649,7 @@ private struct SidebarDrawerSidebar<Header: View, Content: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .scrollEdgeEffectStyle(edgeEffectStyle, for: .top)
+            .compatScrollEdgeEffectStyle(edgeEffectStyle, for: .top)
             .safeAreaBar(edge: .top, spacing: 0) {
                 SidebarDrawerHeaderBar(
                     safeAreaInsets: safeAreaInsets,
@@ -692,10 +696,10 @@ private enum SidebarDrawerCardShape {
 /// container, the page modifier chains, or anything that reads the drawer's
 /// environment. Code that only needs to know where the drawer rests reads
 /// `restingProgress`, which changes once per gesture instead of every frame.
-@MainActor @Observable final class SidebarDrawerMotion {
-    private(set) var progress: CGFloat
+@MainActor final class SidebarDrawerMotion: ObservableObject {
+    @Published private(set) var progress: CGFloat
     /// 0 when closed, 1 when fully open, 0.5 anywhere in between.
-    private(set) var restingProgress: CGFloat
+    @Published private(set) var restingProgress: CGFloat
 
     init(progress: CGFloat) {
         self.progress = progress
@@ -721,7 +725,7 @@ private struct SidebarDrawerSidebarMotion: ViewModifier {
     func body(content: Content) -> some View {
         let progress = motion.progress
         content
-            .overlay {
+            .compatOverlay {
                 drawerSystemBackground
                     .opacity(overlayOpacity * (1 - progress))
                     .allowsHitTesting(false)
@@ -741,7 +745,7 @@ private struct SidebarDrawerCardMotion: ViewModifier {
         let screenShape = SidebarDrawerCardShape.shape(isFullyClosed: isFullyClosed)
 
         content
-            .background {
+            .compatBackground {
                 // Shadow only the card shape. Compositing the entire conversation
                 // into an animated shadow layer repaints its text during a pan.
                 // Keep the drawn shadow constant and fade its layer: a changing
@@ -752,13 +756,13 @@ private struct SidebarDrawerCardMotion: ViewModifier {
                     .allowsHitTesting(false)
             }
             // Constant fills with layer opacity composite without redrawing.
-            .overlay {
+            .compatOverlay {
                 screenShape
                     .fill(.white)
                     .opacity(overlayOpacity * progress)
                     .allowsHitTesting(false)
             }
-            .overlay {
+            .compatOverlay {
                 screenShape
                     .stroke(Color.primary.opacity(0.2), lineWidth: 1)
                     .opacity(progress)
@@ -780,7 +784,7 @@ private struct SidebarDrawerCloseArea: View {
     var body: some View {
         let region = SidebarDrawerCloseRegion(leadingEdge: revealWidth * motion.progress)
         region.fill(.clear)
-            .contentShape(.interaction, region)
+            .contentShape(region)
     }
 }
 
@@ -804,7 +808,7 @@ private extension Double {
 
 private var drawerSystemBackground: Color {
 #if canImport(UIKit)
-    Color(uiColor: .systemBackground)
+    Color(UIColor.systemBackground)
 #elseif canImport(AppKit)
     Color(nsColor: .windowBackgroundColor)
 #else

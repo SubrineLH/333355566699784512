@@ -33,9 +33,9 @@ struct SessionTimelineRow: View, Equatable {
                         // extra placeholder row would disappear on the first token.
                         if !row.value.isStreamingText {
                             if row.value.status == .interrupted || row.value.status == .cancelled {
-                                Text(String(localized: "已停止生成")).font(.caption).foregroundStyle(.secondary)
+                                Text(L("已停止生成")).font(.caption).foregroundColor(.secondary)
                             }
-                            if row.value.status == .failed { Text(String(localized: "生成未完成")).font(.caption).foregroundStyle(.secondary) }
+                            if row.value.status == .failed { Text(L("生成未完成")).font(.caption).foregroundColor(.secondary) }
                         }
                     }
                 }
@@ -76,19 +76,19 @@ struct UserMessageBubble: View {
                 if !text.isEmpty {
                     ChatSelectableText(text: text).font(.body)
                         .padding(.horizontal, 17).padding(.vertical, 12)
-                        .background(colorScheme == .dark ? Color(white: 0.13) : Color(white: 0.94), in: .rect(cornerRadius: 24))
+                        .compatBackground(colorScheme == .dark ? Color(white: 0.13) : Color(white: 0.94), in: .rect(cornerRadius: 24))
                 }
             }
-            .overlay(alignment: .bottomLeading) {
+            .compatOverlay(alignment: .bottomLeading) {
                 // Delivery state occupies the existing leading gutter, so the
                 // echo never changes text wrapping or attachment width.
                 if isPending {
-                    ProgressView().progressViewStyle(.circular).controlSize(.small)
-                        .frame(width: 18, height: 44).offset(x: -26).accessibilityLabel(String(localized: "正在发送消息"))
+                    ProgressView().progressViewStyle(.circular).compatControlSize(.small)
+                        .frame(width: 18, height: 44).offset(x: -26).accessibilityLabel(L("正在发送消息"))
                 } else if let onDeliveryIssue {
                     Button(action: onDeliveryIssue) {
-                        AppSymbol("exclamationmark.circle").foregroundStyle(.red).frame(width: 24, height: 44)
-                    }.buttonStyle(.plain).offset(x: -30).accessibilityLabel(String(localized: "查看发送问题"))
+                        AppSymbol("exclamationmark.circle").foregroundColor(.red).frame(width: 24, height: 44)
+                    }.buttonStyle(.plain).offset(x: -30).accessibilityLabel(L("查看发送问题"))
                 }
             }
         }
@@ -106,20 +106,20 @@ struct PendingMessageRow: View {
             attachments: chat.session.attachmentPreviews.resolve(pending.attachments.map(\.content), clientID: pending.id),
             onAttachment: onAttachment, loadThumbnail: chat.thumbnail, isPending: pending.delivery == .sending || pending.delivery == .accepted,
             onDeliveryIssue: deliveryIssue == nil ? nil : { confirmsDismiss = true })
-        .confirmationDialog(deliveryIssue ?? "", isPresented: $confirmsDismiss, titleVisibility: .visible) {
-            Button(String(localized: "返回编辑")) {
+        .compatConfirmationDialog(deliveryIssue ?? "", isPresented: $confirmsDismiss, titleVisibility: .visible) {
+            Button(L("返回编辑")) {
                 if chat.session.isLocalCreation { chat.onEditCreation?(pending) }
                 else { _ = chat.session.restoreDraft(from: pending) }
             }
-            Button(String(localized: "移除此发送记录")) {
+            Button(L("移除此发送记录")) {
                 if chat.session.isLocalCreation { chat.onDiscardCreation?() } else { onDismiss() }
             }
-            Button(String(localized: "取消"), role: .cancel) {}
+            Button(L("取消"), role: .cancel) {}
         }
     }
     private var deliveryIssue: String? {
         switch pending.delivery {
-        case .uncertain: String(localized: "发送结果尚未确认，草稿已保留。请先检查会话是否已收到消息；移除记录后再次发送可能产生重复消息。")
+        case .uncertain: L("发送结果尚未确认，草稿已保留。请先检查会话是否已收到消息；移除记录后再次发送可能产生重复消息。")
         case let .rejected(error): error.message
         default: nil
         }

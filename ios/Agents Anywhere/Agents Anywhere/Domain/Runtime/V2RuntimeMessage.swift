@@ -18,7 +18,7 @@ nonisolated struct V2RuntimeActionResponse: Decodable, Hashable {
     @discardableResult
     func requireSuccess() throws -> Self {
         guard ok else {
-            throw error ?? V2RuntimeError(code: nil, message: String(localized: "The runtime did not accept this operation."))
+            throw error ?? V2RuntimeError(code: nil, message: L("The runtime did not accept this operation."))
         }
         return self
     }

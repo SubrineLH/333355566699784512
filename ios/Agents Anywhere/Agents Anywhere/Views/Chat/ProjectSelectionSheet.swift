@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct ProjectSelectionSheet: View {
-    @Bindable var model: NewSessionModel
-    @Bindable var repository: V2DashboardRepository
+    @ObservedObject var model: NewSessionModel
+    @ObservedObject var repository: V2DashboardRepository
     @AppStorage(ProjectSidebarPreferences.sessionListKey) private var showsSessionList = false
     @State private var createsProject = false
     @State private var showsFiles = false
     @State private var selectionCompleted = false
-    @Environment(AppState.self) private var appState
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.presentationMode) private var presentationMode
 
     private var canBrowse: Bool {
         model.connector?.status == .online && model.network.availability != .offline && model.isValid && !model.isCreating
@@ -23,59 +23,59 @@ struct ProjectSelectionSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             List {
                 Section {
-                    Label(model.connector?.name ?? String(localized: "选择设备"), appSymbol: "desktopcomputer")
+                    Label(model.connector?.name ?? L("选择设备"), appSymbol: "desktopcomputer")
                     if !canBrowse {
-                        Label(String(localized: "设备或网络已离线，已保存的目录仍可选择。"), appSymbol: "wifi.slash")
-                            .font(.footnote).foregroundStyle(.secondary)
+                        Label(L("设备或网络已离线，已保存的目录仍可选择。"), appSymbol: "wifi.slash")
+                            .font(.footnote).foregroundColor(.secondary)
                     }
                 }
-                Section(showsSessionList ? String(localized: "工作目录") : String(localized: "这台设备上的项目")) {
+                Section(showsSessionList ? L("工作目录") : L("这台设备上的项目")) {
                     if showsSessionList || homeProject == nil { homeRow }
                     if showsSessionList {
                         ForEach(directories) { directory in
                             directoryRow(name: directory.name, path: directory.path)
                         }
-                        Button(String(localized: "浏览文件系统"), appSymbol: "folder") { showsFiles = true }
+                        Button(L("浏览文件系统"), appSymbol: "folder") { showsFiles = true }
                             .disabled(!canBrowse)
                     } else {
                         ForEach(model.availableProjects) { project in
                             Button {
-                                if model.selectProject(project.id) { dismiss() }
+                                if model.selectProject(project.id) { presentationMode.wrappedValue.dismiss() }
                             } label: {
                                 HStack {
                                     ProjectSummaryLabel(project: project)
                                     Spacer(minLength: 8)
                                     if model.projectID == project.id { AppSymbol("checkmark") }
-                                }.padding(.vertical, 6).contentShape(.rect)
+                                }.padding(.vertical, 6).contentShape(Rectangle())
                             }.buttonStyle(.plain)
                         }
                         if model.project == nil, !model.isHome, !model.workspace.isEmpty {
                             directoryRow(name: ProjectWorkspacePath.name(model.workspace), path: model.workspace)
                         }
-                        Button(String(localized: "创建项目"), appSymbol: "folder.badge.plus") { createsProject = true }
+                        Button(L("创建项目"), appSymbol: "folder.badge.plus") { createsProject = true }
                             .disabled(!repository.canWrite || !canBrowse)
                     }
                 }
                 if let error = model.homeErrors[model.connectorID], model.homePath == nil {
                     Section {
-                        Text(error).font(.footnote).foregroundStyle(.secondary)
-                        Button(String(localized: "重新解析家目录")) { Task { await model.resolveHome() } }
+                        Text(error).font(.footnote).foregroundColor(.secondary)
+                        Button(L("重新解析家目录")) { Task { await model.resolveHome() } }
                             .disabled(!canBrowse || model.loadingHomes.contains(model.connectorID))
                     }
                 }
-                if let error = repository.error { Section { Text(error).foregroundStyle(.secondary) } }
+                if let error = repository.error { Section { Text(error).foregroundColor(.secondary) } }
             }
-            .scrollContentBackground(.hidden)
-            .scrollEdgeEffectStyle(.soft, for: .all)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .refreshable { await repository.refresh(); await model.resolveHome() }
-            .navigationTitle(showsSessionList ? String(localized: "选择工作目录") : String(localized: "选择项目"))
+            .compatScrollContentBackground(.hidden)
+            .compatScrollEdgeEffectStyle(.soft, for: .all)
+            .compatToolbarBackground(.hidden, for: .navigationBar)
+            .compatRefreshable { await repository.refresh(); await model.resolveHome() }
+            .navigationTitle(showsSessionList ? L("选择工作目录") : L("选择项目"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { SheetCloseToolbar { dismiss() } }
-            .task(id: model.connectorID) { await model.resolveHome() }
+            .toolbar { SheetCloseToolbar { presentationMode.wrappedValue.dismiss() } }
+            .compatTask(id: model.connectorID) { await model.resolveHome() }
         }
         .appSheetPresentation(.compact)
         .sheet(isPresented: $createsProject, onDismiss: finishSelection) {
@@ -99,46 +99,46 @@ struct ProjectSelectionSheet: View {
 
     private var homeRow: some View {
         Button {
-            if let path = model.homePath, model.selectWorkspace(path) { dismiss() }
+            if let path = model.homePath, model.selectWorkspace(path) { presentationMode.wrappedValue.dismiss() }
         } label: {
             HStack(spacing: 12) {
                 AppSymbol("house")
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(String(localized: "Home 目录")).foregroundStyle(.primary)
-                    Text(model.homePath ?? String(localized: "正在解析设备家目录…"))
-                        .font(.system(.footnote, design: .monospaced)).foregroundStyle(.secondary).lineLimit(2)
+                    Text(L("Home 目录")).foregroundColor(.primary)
+                    Text(model.homePath ?? L("正在解析设备家目录…"))
+                        .font(.system(.footnote, design: .monospaced)).foregroundColor(.secondary).lineLimit(2)
                 }
                 Spacer(minLength: 8)
-                if model.loadingHomes.contains(model.connectorID) { ProgressView().controlSize(.small) }
+                if model.loadingHomes.contains(model.connectorID) { ProgressView().compatControlSize(.small) }
                 else if model.isHome { AppSymbol("checkmark") }
             }.padding(.vertical, 6)
         }.buttonStyle(.plain).disabled(model.homePath == nil)
     }
     private func directoryRow(name: String, path: String) -> some View {
-        Button { if model.selectWorkspace(path) { dismiss() } } label: {
+        Button { if model.selectWorkspace(path) { presentationMode.wrappedValue.dismiss() } } label: {
             HStack(spacing: 12) {
                 AppSymbol("folder")
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(name).foregroundStyle(.primary)
-                    Text(path).font(.system(.footnote, design: .monospaced)).foregroundStyle(.secondary).lineLimit(2)
+                    Text(name).foregroundColor(.primary)
+                    Text(path).font(.system(.footnote, design: .monospaced)).foregroundColor(.secondary).lineLimit(2)
                 }
                 Spacer(minLength: 8)
                 if ProjectWorkspacePath.key(path, deviceOS: model.connector?.deviceOs) == ProjectWorkspacePath.key(model.workspace, deviceOS: model.connector?.deviceOs) {
                     AppSymbol("checkmark")
                 }
-            }.padding(.vertical, 6).contentShape(.rect)
+            }.padding(.vertical, 6).contentShape(Rectangle())
         }.buttonStyle(.plain)
     }
-    private func finishSelection() { if selectionCompleted { dismiss() } }
+    private func finishSelection() { if selectionCompleted { presentationMode.wrappedValue.dismiss() } }
 }
 
 struct ProjectSummaryLabel: View {
     let project: V2Project
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(project.name).font(.headline).foregroundStyle(.primary)
+            Text(project.name).font(.headline).foregroundColor(.primary)
             Text(project.workspacePath).font(.system(.footnote, design: .monospaced))
-                .foregroundStyle(.secondary).lineLimit(2)
+                .foregroundColor(.secondary).lineLimit(2)
         }
     }
 }

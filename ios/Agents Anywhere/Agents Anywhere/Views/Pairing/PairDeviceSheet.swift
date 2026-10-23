@@ -2,11 +2,11 @@ import SwiftUI
 import UIKit
 
 struct PairDeviceSheet: View {
-    @Environment(AppState.self) private var appState
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.presentationMode) private var presentationMode
     @Environment(\.openURL) private var openURL
     @State private var path: [Step] = []
-    @State private var name = String(localized: "New device")
+    @State private var name = L("New device")
     @State private var code = ""
     @State private var credential: V2ConnectorCreateResponse?
     @State private var isWorking = false
@@ -16,14 +16,15 @@ struct PairDeviceSheet: View {
     private enum Step: Hashable { case connectionMethod, desktop, cliConfirm, name, cliMethod, pairCode, token }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        CompatNavigationStack(path: $path) {
             page(.connectionMethod)
-                .navigationDestination(for: Step.self) { page($0) }
+        } destination: { step in
+            page(step)
         }
         .appSheetPresentation(.compact)
         .disabled(isWorking)
-        .interactiveDismissDisabled(isWorking)
-        .onChange(of: path) { _, _ in error = nil; copied = false }
+        .compatInteractiveDismissDisabled(isWorking)
+        .compatOnChange(of: path) { _, _ in error = nil; copied = false }
     }
 
     private func page(_ step: Step) -> some View {
@@ -35,7 +36,7 @@ struct PairDeviceSheet: View {
         .frame(maxWidth: .infinity)
         .navigationTitle(title(for: step))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { SheetCloseToolbar(disabled: isWorking) { dismiss() } }
+        .toolbar { SheetCloseToolbar(disabled: isWorking) { presentationMode.wrappedValue.dismiss() } }
         .onAppear {
             if step == .token, let credential {
                 appState.nativeChatServices?.agentSetup.watch(credential.connector)
@@ -50,18 +51,18 @@ struct PairDeviceSheet: View {
                 else if step == .cliConfirm { cliConfirmation }
                 else if step != .connectionMethod { cliInstructions(step) }
                 else {
-                    Text(String(localized: "选择设备的连接方式")).font(.title2.bold())
-                    Text(String(localized: "dashboard.pairDevice.connectionDescription")).foregroundStyle(.secondary)
-                    AppGlassButton(String(localized: "桌面应用"), systemImage: "desktopcomputer", style: .prominent) {
+                    Text(L("选择设备的连接方式")).font(.title2).bold()
+                    Text(L("dashboard.pairDevice.connectionDescription")).foregroundColor(.secondary)
+                    AppGlassButton(L("桌面应用"), systemImage: "desktopcomputer", style: .prominent) {
                         path.append(.desktop)
                     }
-                    Text(String(localized: "在电脑上安装桌面应用，并登录同一账号。设备会自动显示在侧栏。")).foregroundStyle(.secondary)
-                    AppGlassButton(String(localized: "命令行"), systemImage: "terminal") {
+                    Text(L("在电脑上安装桌面应用，并登录同一账号。设备会自动显示在侧栏。")).foregroundColor(.secondary)
+                    AppGlassButton(L("命令行"), systemImage: "terminal") {
                         path.append(.cliConfirm)
                     }
-                    Text(String(localized: "适合通过 CLI 连接远程主机或无界面的设备。")).foregroundStyle(.secondary)
+                    Text(L("适合通过 CLI 连接远程主机或无界面的设备。")).foregroundColor(.secondary)
                 }
-                if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+                if let error { Text(error).font(.footnote).foregroundColor(.red) }
             }.padding(22).frame(maxWidth: 560)
         }
     }
@@ -69,26 +70,26 @@ struct PairDeviceSheet: View {
     private var nameForm: some View {
         Form {
             Section {
-                TextField(String(localized: "dashboard.pairDevice.namePlaceholder"), text: $name)
-                    .textFieldStyle(.plain).autocorrectionDisabled()
-                    .submitLabel(.continue).onSubmit(continuePairing)
+                TextField(L("dashboard.pairDevice.namePlaceholder"), text: $name)
+                    .textFieldStyle(.plain).compatAutocorrectionDisabled()
+                    .compatSubmitLabel(.continue).compatOnSubmit(continuePairing)
             } header: {
-                Text(String(localized: "设备名称")).textCase(nil)
+                Text(L("设备名称")).textCase(nil)
             } footer: {
-                Text(String(localized: "dashboard.pairDevice.nameDescription"))
+                Text(L("dashboard.pairDevice.nameDescription"))
             }
             Section {
-                AppGlassButton(String(localized: "继续"), systemImage: "arrow.right", style: .prominent,
+                AppGlassButton(L("继续"), systemImage: "arrow.right", style: .prominent,
                     isLoading: isWorking, action: continuePairing)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking || !canConnect || creationUncertain)
             }.listRowBackground(Color.clear).listRowInsets(EdgeInsets())
             if creationUncertain {
-                Text(String(localized: "服务器是否已创建设备尚未确认。请先关闭此页并刷新设备列表，确认结果后再创建。"))
-                    .font(.footnote).foregroundStyle(.secondary)
+                Text(L("服务器是否已创建设备尚未确认。请先关闭此页并刷新设备列表，确认结果后再创建。"))
+                    .font(.footnote).foregroundColor(.secondary)
             }
             pairingMessages
         }
-        .scrollContentBackground(.hidden).scrollDismissesKeyboard(.interactively)
+        .compatScrollContentBackground(.hidden).compatScrollDismissesKeyboard(.interactively)
         .frame(maxWidth: 560).frame(maxWidth: .infinity)
     }
 
@@ -97,17 +98,17 @@ struct PairDeviceSheet: View {
             Form {
                 if !isReady(credential) {
                     Section {
-                        Text(String(localized: "先在目标设备运行以下命令，再填写 CLI 显示的配对码。"))
-                            .foregroundStyle(.secondary)
+                        Text(L("先在目标设备运行以下命令，再填写 CLI 显示的配对码。"))
+                            .foregroundColor(.secondary)
                         commandBlock(V2PairingCommand.pair(server: server))
                     } header: {
                         Text(credential.connector.name).textCase(nil)
                     }.listRowBackground(Color.clear)
                     Section {
-                        OneTimeCodeField(code: $code, title: String(localized: "dashboard.pairDevice.codeLabel"))
+                        OneTimeCodeField(code: $code, title: L("dashboard.pairDevice.codeLabel"))
                     }
                     Section {
-                        AppGlassButton(String(localized: "连接设备"), systemImage: "link", style: .prominent, isLoading: isWorking) {
+                        AppGlassButton(L("连接设备"), systemImage: "link", style: .prominent, isLoading: isWorking) {
                             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                             Task { await claim(credential) }
                         }.disabled(code.count != 6 || isWorking || !canConnect)
@@ -116,17 +117,17 @@ struct PairDeviceSheet: View {
                 pairingStatus(credential)
                 pairingMessages
             }
-            .scrollContentBackground(.hidden).scrollDismissesKeyboard(.interactively)
+            .compatScrollContentBackground(.hidden).compatScrollDismissesKeyboard(.interactively)
             .frame(maxWidth: 560).frame(maxWidth: .infinity)
         }
     }
 
     @ViewBuilder private var pairingMessages: some View {
         if !canConnect {
-            Text(String(localized: "连接恢复后可以继续，已填写的内容会保留。"))
-                .font(.footnote).foregroundStyle(.secondary)
+            Text(L("连接恢复后可以继续，已填写的内容会保留。"))
+                .font(.footnote).foregroundColor(.secondary)
         }
-        if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+        if let error { Text(error).font(.footnote).foregroundColor(.red) }
     }
 
     private func continuePairing() {
@@ -137,22 +138,22 @@ struct PairDeviceSheet: View {
 
     private func title(for step: Step) -> String {
         switch step {
-        case .connectionMethod: String(localized: "添加设备")
-        case .desktop: String(localized: "桌面应用")
-        case .cliConfirm: String(localized: "命令行")
-        case .name: String(localized: "dashboard.pairDevice.nameTitle")
-        case .cliMethod: String(localized: "选择配对方式")
-        case .pairCode: String(localized: "dashboard.pairDevice.codeStepTitle")
-        case .token: String(localized: "dashboard.pairDevice.commandStepTitle")
+        case .connectionMethod: L("添加设备")
+        case .desktop: L("桌面应用")
+        case .cliConfirm: L("命令行")
+        case .name: L("dashboard.pairDevice.nameTitle")
+        case .cliMethod: L("选择配对方式")
+        case .pairCode: L("dashboard.pairDevice.codeStepTitle")
+        case .token: L("dashboard.pairDevice.commandStepTitle")
         }
     }
 
     private var desktopInstructions: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Label(String(localized: "Agents Anywhere Desktop"), appSymbol: "desktopcomputer").font(.title2.bold())
-            Text(String(localized: "在电脑上安装桌面应用，使用以下服务器地址登录当前账号。连接后，可以在设备管理中添加 Agent。"))
-            Text(appState.serverURL?.absoluteString ?? "").font(.callout.monospaced()).textSelection(.enabled)
-            AppGlassButton(String(localized: "下载桌面应用"), style: .prominent) {
+            Label(L("Agents Anywhere Desktop"), appSymbol: "desktopcomputer").font(.title2.weight(.bold))
+            Text(L("在电脑上安装桌面应用，使用以下服务器地址登录当前账号。连接后，可以在设备管理中添加 Agent。"))
+            Text(appState.serverURL?.absoluteString ?? "").font(Font.system(.callout, design: .monospaced)).compatTextSelection()
+            AppGlassButton(L("下载桌面应用"), style: .prominent) {
                 openURL(URL(string: "https://agents-anywhere.com/")!)
             }
         }
@@ -160,14 +161,14 @@ struct PairDeviceSheet: View {
 
     private var cliConfirmation: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(String(localized: "确定要使用命令行吗？")).font(.title2.bold())
-            Text(String(localized: "此方式需要会使用终端以及 uv / uvx 命令行工具。"))
-            Text(String(localized: "如果使用 Windows 或 macOS，桌面程序的连接和日常使用更方便。"))
-                .foregroundStyle(.secondary)
-            AppGlassButton(String(localized: "继续使用命令行"), style: .prominent) {
+            Text(L("确定要使用命令行吗？")).font(.title2).bold()
+            Text(L("此方式需要会使用终端以及 uv / uvx 命令行工具。"))
+            Text(L("如果使用 Windows 或 macOS，桌面程序的连接和日常使用更方便。"))
+                .foregroundColor(.secondary)
+            AppGlassButton(L("继续使用命令行"), style: .prominent) {
                 path.append(.name)
             }
-            AppGlassButton(String(localized: "使用桌面程序")) {
+            AppGlassButton(L("使用桌面程序")) {
                 path.append(.desktop)
             }
         }
@@ -175,30 +176,30 @@ struct PairDeviceSheet: View {
 
     @ViewBuilder private func cliInstructions(_ step: Step) -> some View {
         if let credential, let server = appState.serverURL {
-            Text(credential.connector.name).font(.title2.bold())
+            Text(credential.connector.name).font(.title2).bold()
             if !isReady(credential) {
                 if step == .cliMethod {
-                    Text(String(localized: "Choose how to connect \(credential.connector.name) to your account.")).foregroundStyle(.secondary)
-                    AppGlassButton(String(localized: "使用配对码"), systemImage: "number", style: .prominent) {
+                    Text(L("Choose how to connect \(credential.connector.name) to your account.")).foregroundColor(.secondary)
+                    AppGlassButton(L("使用配对码"), systemImage: "number", style: .prominent) {
                         path.append(.pairCode)
                     }
-                    Text(String(localized: "在设备上运行命令，将生成的六位配对码填回这里。"))
-                        .font(.footnote).foregroundStyle(.secondary)
-                    AppGlassButton(String(localized: "使用 Token"), systemImage: "key") {
+                    Text(L("在设备上运行命令，将生成的六位配对码填回这里。"))
+                        .font(.footnote).foregroundColor(.secondary)
+                    AppGlassButton(L("使用 Token"), systemImage: "key") {
                         path.append(.token)
                     }
-                    Text(String(localized: "dashboard.pairDevice.tokenDescription"))
-                        .font(.footnote).foregroundStyle(.secondary)
+                    Text(L("dashboard.pairDevice.tokenDescription"))
+                        .font(.footnote).foregroundColor(.secondary)
                 } else {
-                    Text(String(localized: "Run this command in the terminal on \(credential.connector.name) to connect it to your account automatically."))
-                        .foregroundStyle(.secondary)
+                    Text(L("Run this command in the terminal on \(credential.connector.name) to connect it to your account automatically."))
+                        .foregroundColor(.secondary)
                     commandBlock(V2PairingCommand.start(server: server, credential: credential))
                 }
             }
             pairingStatus(credential)
         }
-        if !canConnect { Text(String(localized: "连接恢复后可以继续，已填写的内容会保留。"))
-            .font(.footnote).foregroundStyle(.secondary) }
+        if !canConnect { Text(L("连接恢复后可以继续，已填写的内容会保留。"))
+            .font(.footnote).foregroundColor(.secondary) }
     }
 
     private func isReady(_ credential: V2ConnectorCreateResponse) -> Bool {
@@ -209,15 +210,15 @@ struct PairDeviceSheet: View {
         if let setup = appState.nativeChatServices?.agentSetup,
            let request = setup.requests.first(where: { $0.id == credential.connector.id }) {
             if request.ready {
-                Label(String(localized: "设备已连接"), appSymbol: "checkmark.circle").font(.headline)
-                Text(String(localized: "\(credential.connector.name) is online. You can now choose which agents to configure and start on this device, or finish without adding any."))
-                    .font(.footnote).foregroundStyle(.secondary)
-                AppGlassButton(String(localized: "配置 Agent"), style: .prominent) { setup.configure(request.id); dismiss() }
-                AppGlassButton(String(localized: "稍后配置")) { setup.finish(request.id); dismiss() }
+                Label(L("设备已连接"), appSymbol: "checkmark.circle").font(.headline)
+                Text(L("\(credential.connector.name) is online. You can now choose which agents to configure and start on this device, or finish without adding any."))
+                    .font(.footnote).foregroundColor(.secondary)
+                AppGlassButton(L("配置 Agent"), style: .prominent) { setup.configure(request.id); presentationMode.wrappedValue.dismiss() }
+                AppGlassButton(L("稍后配置")) { setup.finish(request.id); presentationMode.wrappedValue.dismiss() }
             } else {
                 HStack {
                     if request.error == nil { ProgressView() }
-                    Text(request.error ?? String(localized: "等待设备连接…"))
+                    Text(request.error ?? L("等待设备连接…"))
                 }.font(.subheadline)
             }
         }
@@ -225,13 +226,13 @@ struct PairDeviceSheet: View {
 
     private func commandBlock(_ command: String) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(command).font(.footnote.monospaced()).textSelection(.enabled)
+            Text(command).font(Font.system(.footnote, design: .monospaced)).compatTextSelection()
                 .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
-            AppGlassButton(copied ? String(localized: "已复制") : String(localized: "复制命令"), systemImage: copied ? "checkmark" : "doc.on.doc") {
+                .background(Color(UIColor.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
+            AppGlassButton(copied ? L("已复制") : L("复制命令"), systemImage: copied ? "checkmark" : "doc.on.doc") {
                 UIPasteboard.general.string = command; copied = true
             }
-        }.onChange(of: command) { _, _ in copied = false }
+        }.compatOnChange(of: command) { _, _ in copied = false }
     }
     private var canConnect: Bool { appState.nativeChatServices?.dashboardRepository.canWrite == true }
     private func prepare() async {

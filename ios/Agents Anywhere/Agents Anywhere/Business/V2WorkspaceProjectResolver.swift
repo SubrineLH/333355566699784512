@@ -8,7 +8,7 @@ struct V2WorkspaceProjectResolver {
     func resolve(projects: [V2Project], connectorID: String, path: String, deviceOS: String?, validate: () throws -> Void = {}) async throws -> V2Project {
         try validate()
         guard !connectorID.isEmpty, ProjectWorkspacePath.key(path, deviceOS: deviceOS) != nil else {
-            throw V2BusinessError.workspaceFilesUnavailable(message: String(localized: "请输入设备上的完整绝对路径。"))
+            throw V2BusinessError.workspaceFilesUnavailable(message: L("请输入设备上的完整绝对路径。"))
         }
         if let existing = ProjectWorkspacePath.project(in: projects, connectorID: connectorID, path: path, deviceOS: deviceOS) {
             return existing

@@ -54,7 +54,7 @@ struct AuthMe: Codable, Equatable {
     let serverTime: String
 
     var accountLabel: String {
-        displayName.isEmpty ? (email ?? String(localized: "Account")) : displayName
+        displayName.isEmpty ? (email ?? L("Account")) : displayName
     }
 }
 

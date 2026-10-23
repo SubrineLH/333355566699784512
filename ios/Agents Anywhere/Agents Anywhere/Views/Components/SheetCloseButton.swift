@@ -5,7 +5,7 @@ struct SheetCloseButton: View {
 
     var body: some View {
         Button(role: .close, action: action) {
-            Label(String(localized: "Close"), appSymbol: "xmark")
+            Label(L("Close"), appSymbol: "xmark")
         }
         .labelStyle(.iconOnly)
         .keyboardShortcut(.cancelAction)
@@ -18,14 +18,14 @@ struct SheetCloseToolbar: ToolbarContent {
     var disabled = false
     let action: () -> Void
     var body: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
+        ToolbarItem(placement: .navigationBarLeading) {
             SheetCloseButton(action: action).disabled(disabled)
         }
     }
 }
 
 struct SheetEditorToolbar: ToolbarContent {
-    var saveTitle = String(localized: "Save")
+    var saveTitle = L("Save")
     var isWorking = false
     var saveDisabled = false
     let onCancel: () -> Void
@@ -38,7 +38,7 @@ struct SheetEditorToolbar: ToolbarContent {
 
 /// Pushed editors keep the system Back button and interactive pop gesture.
 struct SheetSaveToolbar: ToolbarContent {
-    var saveTitle = String(localized: "Save")
+    var saveTitle = L("Save")
     var isWorking = false
     var saveDisabled = false
     let onSave: () -> Void
@@ -47,7 +47,7 @@ struct SheetSaveToolbar: ToolbarContent {
         ToolbarItem(placement: .confirmationAction) {
             Button(role: .confirm, action: onSave) {
                 Text(saveTitle).opacity(isWorking ? 0 : 1)
-                    .overlay { if isWorking { ProgressView().controlSize(.small) } }
+                    .compatOverlay { if isWorking { ProgressView().compatControlSize(.small) } }
             }
             .disabled(isWorking || saveDisabled).keyboardShortcut("s", modifiers: .command)
         }
@@ -56,9 +56,9 @@ struct SheetSaveToolbar: ToolbarContent {
 
 extension View {
     func confirmDiscardChanges(_ isPresented: Binding<Bool>, onDiscard: @escaping () -> Void) -> some View {
-        confirmationDialog(String(localized: "Discard unsaved changes?"), isPresented: isPresented, titleVisibility: .visible) {
-            Button(String(localized: "Discard changes"), role: .destructive, action: onDiscard)
-            Button(String(localized: "Keep editing"), role: .cancel) {}
+        confirmationDialog(L("Discard unsaved changes?"), isPresented: isPresented, titleVisibility: .visible) {
+            Button(L("Discard changes"), role: .destructive, action: onDiscard)
+            Button(L("Keep editing"), role: .cancel) {}
         }
     }
 }

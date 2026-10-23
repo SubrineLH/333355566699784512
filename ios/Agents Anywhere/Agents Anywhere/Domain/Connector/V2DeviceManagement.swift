@@ -16,7 +16,7 @@ nonisolated enum V2DeviceSessionFilter: String, CaseIterable, Identifiable, Hash
 
     var id: String { rawValue }
 
-    var title: LocalizedStringResource {
+    var title: CompatLocalizedString {
         switch self {
         case .active: "Active"
         case .archived: "Archived"

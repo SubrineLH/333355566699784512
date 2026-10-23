@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Combine
 
 struct ChatTimelineGroup: Identifiable, Equatable {
     enum Kind: Equatable { case single, tools, reconnect, agents(String) }
@@ -18,15 +18,15 @@ struct ChatTimelineGroup: Identifiable, Equatable {
     var title: String {
         switch kind {
         case .single: return ""
-        case .agents: return String(localized: "\(rows.count) 次子 Agent 调用")
+        case .agents: return L("\(rows.count) 次子 Agent 调用")
         case .reconnect:
             let attempts = rows.compactMap { $0.structure.reconnectAttempt }
             // The full retry messages remain available in the expanded rows.
-            return String(localized: "连接重试 · \(rows.count) 次") + (attempts.last.map { "（\($0)）" } ?? "")
+            return L("连接重试 · \(rows.count) 次") + (attempts.last.map { "（\($0)）" } ?? "")
         case .tools:
             let reasoning = rows.filter { $0.structure.isReasoning }.count
             let tools = rows.count - reasoning
-            return [reasoning > 0 ? String(localized: "\(reasoning) 段思考") : nil, tools > 0 ? String(localized: "\(tools) 次工具调用") : nil].compactMap { $0 }.joined(separator: " · ")
+            return [reasoning > 0 ? L("\(reasoning) 段思考") : nil, tools > 0 ? L("\(tools) 次工具调用") : nil].compactMap { $0 }.joined(separator: " · ")
         }
     }
 }
@@ -59,9 +59,9 @@ enum TimelineGrouping {
     }
 }
 
-@MainActor @Observable final class TimelineDisclosureState {
-    @Observable fileprivate final class Entry { var expanded = false }
-    @ObservationIgnored private var entries: [String: Entry] = [:]
+@MainActor final class TimelineDisclosureState: ObservableObject {
+    fileprivate final class Entry: ObservableObject { @Published var expanded = false }
+    private var entries: [String: Entry] = [:]
     private func entry(_ id: String) -> Entry {
         if let existing = entries[id] { return existing }
         let value = Entry(); entries[id] = value; return value

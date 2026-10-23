@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 struct ConnectorCredentialSheet: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     let connector: V2Connector
     let connectorToken: String
@@ -11,14 +11,14 @@ struct ConnectorCredentialSheet: View {
     @State private var copiedField: ConnectorCredentialField?
 
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    Label(String(localized: "Connector disconnected"), appSymbol: "key.horizontal")
+                    Label(L("Connector disconnected"), appSymbol: "key.horizontal")
                         .font(.title2.weight(.semibold))
 
-                    Text(String(localized: "The previous credential no longer works. Update the desktop Connector with these values before reconnecting it."))
-                        .foregroundStyle(.secondary)
+                    Text(L("The previous credential no longer works. Update the desktop Connector with these values before reconnecting it."))
+                        .foregroundColor(.secondary)
 
                     ConnectorCredentialValue(
                         title: "Server URL",
@@ -40,18 +40,18 @@ struct ConnectorCredentialSheet: View {
                     )
 
                     Label(
-                        String(localized: "This token is shown only now. Store it in the Connector configuration and do not share it."),
+                        L("This token is shown only now. Store it in the Connector configuration and do not share it."),
                         appSymbol: "exclamationmark.shield"
                     )
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                 }
                 .padding(20)
             }
-            .navigationTitle(String(localized: "New credential"))
+            .navigationTitle(L("New credential"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                SheetCloseToolbar { dismiss() }
+                SheetCloseToolbar { presentationMode.wrappedValue.dismiss() }
             }
         }
         .appSheetPresentation(.expanded)
@@ -71,7 +71,7 @@ private enum ConnectorCredentialField: Hashable {
 }
 
 private struct ConnectorCredentialValue: View {
-    let title: LocalizedStringResource
+    let title: CompatLocalizedString
     let value: String
     let copied: Bool
     let onCopy: () -> Void
@@ -80,25 +80,25 @@ private struct ConnectorCredentialValue: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
                 .textCase(.uppercase)
 
             HStack(alignment: .top, spacing: 10) {
                 Text(value)
-                    .font(.footnote.monospaced())
-                    .textSelection(.enabled)
+                    .font(Font.system(.footnote, design: .monospaced))
+                    .compatTextSelection()
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button(action: onCopy) {
                     AppSymbol(copied ? "checkmark" : "doc.on.doc")
                         .frame(width: 32, height: 32)
                 }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.circle)
-                .accessibilityLabel(copied ? String(localized: "Copied") : String(localized: "Copy \(String(localized: title))"))
+                .buttonStyle(CompatBorderedButtonStyle())
+                .compatButtonBorderShape(.circle)
+                .accessibilityLabel(copied ? L("Copied") : L("Copy \(L(title))"))
             }
         }
         .padding(14)
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color(UIColor.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
     }
 }

@@ -1,20 +1,20 @@
 import Foundation
-import Observation
+import Combine
 
-@MainActor @Observable
-final class SessionNoticeModel: Identifiable {
+@MainActor
+final class SessionNoticeModel: Identifiable, ObservableObject {
     enum Submission: Equatable { case idle, sending(String), accepted, uncertain, unavailable }
     let id: String
-    private(set) var notice: V2RuntimeNotice
-    private(set) var form: NoticeInputForm?
-    private(set) var submission = Submission.idle
-    private(set) var error: String?
-    var choices: [String: Set<String>] = [:]
-    var custom: [String: String] = [:]
-    private(set) var customQuestions: Set<String> = []
-    var fields: [String: [String: JSONValue]] = [:]
-    var composingFields: Set<String> = []
-    @ObservationIgnored private var submittedRevision = 0
+    @Published private(set) var notice: V2RuntimeNotice
+    @Published private(set) var form: NoticeInputForm?
+    @Published private(set) var submission = Submission.idle
+    @Published private(set) var error: String?
+    @Published var choices: [String: Set<String>] = [:]
+    @Published var custom: [String: String] = [:]
+    @Published private(set) var customQuestions: Set<String> = []
+    @Published var fields: [String: [String: JSONValue]] = [:]
+    @Published var composingFields: Set<String> = []
+    private var submittedRevision = 0
 
     init(_ notice: V2RuntimeNotice) {
         id = notice.id; self.notice = notice; form = NoticeInputForm(notice)
@@ -121,9 +121,9 @@ final class SessionNoticeModel: Identifiable {
     func acknowledgeUncertain() { if submission == .uncertain { submission = .idle; error = nil } }
 }
 
-@MainActor @Observable
-final class SessionNoticeStore {
-    private(set) var notices: [SessionNoticeModel] = []
+@MainActor
+final class SessionNoticeStore: ObservableObject {
+    @Published private(set) var notices: [SessionNoticeModel] = []
     var hasDraft: Bool { notices.contains { $0.hasDraft } }
     func update(_ values: [V2RuntimeNotice], sessionID: String) {
         let existing = Dictionary(uniqueKeysWithValues: notices.map { ($0.id, $0) })

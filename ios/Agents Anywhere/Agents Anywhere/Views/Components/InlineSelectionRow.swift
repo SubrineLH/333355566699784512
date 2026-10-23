@@ -40,12 +40,12 @@ private struct InlineSelectionLabel: View {
         HStack(spacing: 12) {
             ZStack {
                 AppSymbol("checkmark", size: 18).opacity(isSelected && !isWorking ? 1 : 0)
-                if isWorking { ProgressView().controlSize(.small) }
+                if isWorking { ProgressView().compatControlSize(.small) }
             }.frame(width: 20, height: 20).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.body.weight(.medium)).foregroundStyle(.primary)
+                Text(title).font(.body.weight(.medium)).foregroundColor(.primary)
                 if let detail, !detail.isEmpty {
-                    Text(detail).font(.footnote).foregroundStyle(.secondary)
+                    Text(detail).font(.footnote).foregroundColor(.secondary)
                 }
             }
             .fixedSize(horizontal: false, vertical: true)

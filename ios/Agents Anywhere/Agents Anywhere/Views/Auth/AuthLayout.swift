@@ -29,7 +29,7 @@ struct AuthScreen<Content: View>: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(.title3)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -73,11 +73,11 @@ struct AuthBrandLockup: View {
     var body: some View {
         VStack(spacing: 18) {
             AAWordmark(fontSize: 42)
-                .foregroundStyle(AppTheme.primaryText(colorScheme))
+                .foregroundColor(AppTheme.primaryText(colorScheme))
 
-            Text(String(localized: "Connect this device to your workspace."))
+            Text(L("Connect this device to your workspace."))
                 .font(.body)
-                .foregroundStyle(AppTheme.secondaryText(colorScheme))
+                .foregroundColor(AppTheme.secondaryText(colorScheme))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -169,9 +169,9 @@ struct LoginSummaryView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            summaryRow(String(localized: "Server"), server)
+            summaryRow(L("Server"), server)
             Divider()
-            summaryRow(String(localized: "User"), userId)
+            summaryRow(L("User"), userId)
         }
         .font(.body)
         .padding(.vertical, 4)
@@ -180,7 +180,7 @@ struct LoginSummaryView: View {
     private func summaryRow(_ title: String, _ value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
             Text(title)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
             Spacer(minLength: 12)
             Text(value)
                 .multilineTextAlignment(.trailing)
@@ -204,7 +204,7 @@ struct AuthResultView: View {
             VStack(spacing: 26) {
                 VStack(spacing: 16) {
                     AppSymbol(symbolName, size: 56)
-                        .foregroundStyle(symbolColor)
+                        .foregroundColor(symbolColor)
 
                     VStack(spacing: 8) {
                         Text(title)
@@ -213,7 +213,7 @@ struct AuthResultView: View {
 
                         Text(message)
                             .font(.body)
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                     }

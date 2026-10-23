@@ -70,16 +70,16 @@ struct SessionTimelineEventView: View {
             } else {
                 TimelineFold(id: row.id, title: value.title, symbol: value.symbol, status: row.value.status, disclosures: disclosures) {
                     ChatMarkdownView(text: row.text, isStreaming: row.isRevealing, resolvesFileReferences: true)
-                        .id(row.layoutGeneration).padding(.leading, 24).foregroundStyle(.secondary)
+                        .id(row.layoutGeneration).padding(.leading, 24).foregroundColor(.secondary)
                         // Reasoning stays well below the reply text.
                         .environment(\.chatMarkdownFont, .caption2)
                 }
             }
         case .compact:
             HStack(spacing: 12) {
-                Rectangle().fill(.quaternary).frame(height: 1)
-                Text(value.title).font(.caption).foregroundStyle(row.value.status.isFailure ? Color.red : .secondary).fixedSize()
-                Rectangle().fill(.quaternary).frame(height: 1)
+                Rectangle().fill(Color(UIColor.quaternaryLabel)).frame(height: 1)
+                Text(value.title).font(.caption).foregroundColor(row.value.status.isFailure ? Color.red : .secondary).fixedSize()
+                Rectangle().fill(Color(UIColor.quaternaryLabel)).frame(height: 1)
             }.padding(.vertical, 8)
         case .tool:
             if value.hasToolDetails {
@@ -91,7 +91,7 @@ struct SessionTimelineEventView: View {
             VStack(alignment: .leading, spacing: 8) {
                 if let path = value.filePath {
                     Button { onFile(path) } label: { TimelineMarkerRow(title: value.title, symbol: value.symbol, status: row.value.status, accessory: "arrow.up.right") }
-                        .buttonStyle(.plain).accessibilityHint(String(localized: "打开文件预览"))
+                        .buttonStyle(.plain).accessibilityHint(L("打开文件预览"))
                 } else if let url = value.externalURL {
                     Link(destination: url) { TimelineMarkerRow(title: value.title, symbol: value.symbol, status: row.value.status, accessory: "arrow.up.right") }
                         .buttonStyle(.plain)
@@ -100,7 +100,7 @@ struct SessionTimelineEventView: View {
         case .marker:
             if let detail = value.detail {
                 TimelineFold(id: row.id, title: value.title, symbol: value.symbol, status: row.value.status, disclosures: disclosures) {
-                    TimelineCodePanel(label: String(localized: "Details"), code: detail.formattedJSON).clipShape(.rect(cornerRadius: 14))
+                    TimelineCodePanel(label: L("Details"), code: detail.formattedJSON).clipShape(RoundedRectangle(cornerRadius: 14))
                 }
             } else { TimelineMarkerRow(title: value.title, symbol: value.symbol, status: row.value.status) }
         }
@@ -122,7 +122,7 @@ struct TimelineMarkerRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let accessory { AppSymbol(accessory, size: 14) }
         }
-        .foregroundStyle(status.isFailure ? Color.red : .primary)
+        .foregroundColor(status.isFailure ? Color.red : .primary)
         // Consecutive tool rows read as one list; the full-width row stays tappable.
         .frame(minHeight: 32).contentShape(Rectangle())
         .accessibilityElement(children: .combine)
@@ -140,13 +140,13 @@ private struct TimelineToolDetails: View {
         let value = row.entry(cwd: cwd)
         let changes = value.changes
         VStack(spacing: 0) {
-            if let command = value.command { TimelineCodePanel(label: String(localized: "Command"), code: command) }
+            if let command = value.command { TimelineCodePanel(label: L("Command"), code: command) }
             if let input = value.input, input != .null && input != .object([:]) {
-                TimelineCodePanel(label: String(localized: "Input"), code: input.formattedJSON)
+                TimelineCodePanel(label: L("Input"), code: input.formattedJSON)
             }
             ForEach(changes) { change in TimelineFileChangeView(change: change, onFile: onFile) }
-            if let output = value.output { TimelineCodePanel(label: String(localized: "Output"), code: output) }
-        }.clipShape(.rect(cornerRadius: 14))
+            if let output = value.output { TimelineCodePanel(label: L("Output"), code: output) }
+        }.clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
 
@@ -197,7 +197,7 @@ private struct TimelineFold<Content: View>: View {
             Button {
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { disclosures.toggle(id) }
             } label: { TimelineMarkerRow(title: title, symbol: symbol, status: status, expanded: disclosures.isExpanded(id)) }
-            .buttonStyle(.plain).accessibilityValue(disclosures.isExpanded(id) ? String(localized: "已展开") : String(localized: "已折叠"))
+            .buttonStyle(.plain).accessibilityValue(disclosures.isExpanded(id) ? L("已展开") : L("已折叠"))
             if disclosures.isExpanded(id) { content().transition(.identity) }
         }
     }
@@ -209,16 +209,16 @@ private struct TimelineFileChangeView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                AppSymbol("doc.text").foregroundStyle(.secondary)
-                Text(change.action.label).font(.caption2).padding(5).background(.quaternary, in: .rect(cornerRadius: 5))
+                AppSymbol("doc.text").foregroundColor(.secondary)
+                Text(change.action.label).font(.caption2).padding(5).background(RoundedRectangle(cornerRadius: 5).fill(Color(UIColor.quaternaryLabel)))
                 Button { if let path = change.path { onFile(path) } } label: {
                     Text(change.displayPath).font(.system(.caption, design: .monospaced)).lineLimit(1).truncationMode(.middle)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                }.buttonStyle(.plain).disabled(change.path == nil).accessibilityHint(String(localized: "在 Web 预览中打开文件"))
-                AppSymbol("arrow.up.right", size: 12).foregroundStyle(.secondary)
-            }.padding(.horizontal, 12).frame(minHeight: 44).background(.quaternary.opacity(0.4))
+                }.buttonStyle(.plain).disabled(change.path == nil).accessibilityHint(L("在 Web 预览中打开文件"))
+                AppSymbol("arrow.up.right", size: 12).foregroundColor(.secondary)
+            }.padding(.horizontal, 12).frame(minHeight: 44).background(Color(UIColor.quaternaryLabel).opacity(0.4))
             if let code = change.diff ?? change.code { TimelineCodePanel(label: change.diff == nil ? "code" : "diff", code: code, isDiff: change.diff != nil) }
-        }.background(Color(uiColor: .secondarySystemBackground))
+        }.background(Color(UIColor.secondarySystemBackground))
     }
 }
 
@@ -256,9 +256,9 @@ struct TimelineCodePanel: View {
                 Button {
                     UIPasteboard.general.string = code; copied = true
                 } label: { AppSymbol(copied ? "checkmark" : "document.on.document").frame(width: 44, height: 44) }
-                .buttonStyle(.plain).accessibilityLabel(copied ? String(localized: "已复制") : String(localized: "复制 \(label)"))
-                .task(id: copied) { if copied { try? await Task.sleep(for: .seconds(2)); copied = false } }
-            }.padding(.leading, 12).foregroundStyle(.secondary).background(.quaternary.opacity(0.3))
+                .buttonStyle(.plain).accessibilityLabel(copied ? L("已复制") : L("复制 \(label)"))
+                .compatTask(id: copied) { if copied { try? await compatSleep(seconds: 2); copied = false } }
+            }.padding(.leading, 12).foregroundColor(.secondary).background(Color(UIColor.quaternaryLabel).opacity(0.3))
             ScrollView([.horizontal, .vertical]) {
                 if isDiff {
                     LazyVStack(alignment: .leading, spacing: 0) {
@@ -272,7 +272,7 @@ struct TimelineCodePanel: View {
                             }
                             .font(.system(.caption, design: .monospaced)).monospacedDigit()
                             .padding(.horizontal, 12).frame(minHeight: rowHeight)
-                            .foregroundStyle(diffColor(line.kind)).background(diffColor(line.kind).opacity(line.kind == .add || line.kind == .delete ? 0.09 : 0))
+                            .foregroundColor(diffColor(line.kind)).background(diffColor(line.kind).opacity(line.kind == .add || line.kind == .delete ? 0.09 : 0))
                         }
                     }.padding(.vertical, 8).fixedSize(horizontal: true, vertical: false)
                 } else {
@@ -281,8 +281,8 @@ struct TimelineCodePanel: View {
                 }
             }
             .frame(height: min(320, max(76, CGFloat(panel.lineCount) * rowHeight + 24)))
-            if displayCode.count < code.count { Text(String(localized: "预览已截断，复制可获取完整内容")).font(.caption).foregroundStyle(.secondary).padding(8) }
-        }.background(Color(uiColor: .secondarySystemBackground))
+            if displayCode.count < code.count { Text(L("预览已截断，复制可获取完整内容")).font(.caption).foregroundColor(.secondary).padding(8) }
+        }.background(Color(UIColor.secondarySystemBackground))
     }
     private func diffColor(_ kind: TimelineDiff.Line.Kind) -> Color {
         switch kind { case .add: .green; case .delete: .red; case .hunk, .file, .annotation: .secondary; case .context: .primary }

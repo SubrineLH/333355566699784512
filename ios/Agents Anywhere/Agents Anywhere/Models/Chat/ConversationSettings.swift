@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Combine
 
 struct CatalogOption: Identifiable, Equatable {
     let id: String
@@ -50,19 +50,19 @@ struct ChatSettingsCatalog: Equatable {
 }
 
 /// Catalog IDs label UI choices; only opaque selection IDs cross the API boundary.
-@MainActor @Observable
-final class ConversationSettings {
-    private(set) var catalog = ChatSettingsCatalog()
-    private(set) var modelID = ""
-    private(set) var reasoningID = ""
-    private(set) var permissionID = ""
+@MainActor
+final class ConversationSettings: ObservableObject {
+    @Published private(set) var catalog = ChatSettingsCatalog()
+    @Published private(set) var modelID = ""
+    @Published private(set) var reasoningID = ""
+    @Published private(set) var permissionID = ""
 
     var model: ChatModelOption? { catalog.models.first { $0.id == modelID } }
     var reasoning: CatalogOption? { model?.reasoning.first { $0.id == reasoningID } }
     var permission: CatalogOption? { catalog.permissions.first { $0.id == permissionID } }
     var modelLabel: String {
         let parts = [model?.option.title, reasoning?.title].compactMap { $0 }
-        return parts.isEmpty ? String(localized: "默认模型") : parts.joined(separator: " · ")
+        return parts.isEmpty ? L("默认模型") : parts.joined(separator: " · ")
     }
     var selections: [V2RuntimeSelectionScope: V2SelectionID] {
         var result: [V2RuntimeSelectionScope: V2SelectionID] = [:]

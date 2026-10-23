@@ -1,65 +1,65 @@
 import Foundation
-import Observation
+import Combine
 #if os(iOS)
 import UIKit
 #endif
 
-@MainActor @Observable
-final class AppState {
+@MainActor
+final class AppState: ObservableObject {
     enum Route {
         case loading
         case signedOut
         case signedIn
     }
 
-    private(set) var route: Route = .loading
-    private(set) var serverURL: URL?
-    private(set) var me: AuthMe? {
+    @Published private(set) var route: Route = .loading
+    @Published private(set) var serverURL: URL?
+    @Published private(set) var me: AuthMe? {
         didSet {
             guard me != oldValue else { return }
             accountAvatarSource = AccountAvatarImageSource.parse(me?.avatar)
             if let me, let serverURL, let token = accessToken() { restoration.save(profile: me, server: serverURL, token: token) }
         }
     }
-    var chatSelection = ChatShellSelection.newSession {
+    @Published var chatSelection = ChatShellSelection.newSession {
         didSet { if let scope = cachedServices?.scope, scope.accountID == me?.userId { restoration.save(selection: chatSelection, in: scope) } }
     }
-    private(set) var restoreConnectionError: String?
-    private(set) var accountAvatarSource: AccountAvatarImageSource?
-    private(set) var connectors: [V2Connector] = []
-    private(set) var sessions: [V2SessionMeta] = []
-    private(set) var projects: [V2Project] = []
-    private(set) var isDashboardLoading = false
-    private(set) var hasLoadedConnectors = false
-    private(set) var hasLoadedSessions = false
-    var authError: String?
-    private(set) var authNeedsLocalNetworkSettings = false
-    var dashboardError: String?
-    var sessionsError: String?
-    var connectorsError: String?
-    var isWorking = false
-    private(set) var isRetryingServerConnection = false
-    private(set) var sessionActionError: String?
-    private(set) var isAccountWorking = false
-    private(set) var accountError: String?
+    @Published private(set) var restoreConnectionError: String?
+    @Published private(set) var accountAvatarSource: AccountAvatarImageSource?
+    @Published private(set) var connectors: [V2Connector] = []
+    @Published private(set) var sessions: [V2SessionMeta] = []
+    @Published private(set) var projects: [V2Project] = []
+    @Published private(set) var isDashboardLoading = false
+    @Published private(set) var hasLoadedConnectors = false
+    @Published private(set) var hasLoadedSessions = false
+    @Published var authError: String?
+    @Published private(set) var authNeedsLocalNetworkSettings = false
+    @Published var dashboardError: String?
+    @Published var sessionsError: String?
+    @Published var connectorsError: String?
+    @Published var isWorking = false
+    @Published private(set) var isRetryingServerConnection = false
+    @Published private(set) var sessionActionError: String?
+    @Published private(set) var isAccountWorking = false
+    @Published private(set) var accountError: String?
 
-    @ObservationIgnored private let keychain = KeychainStore()
-    @ObservationIgnored private let restoration = V2RestorationStore()
-    @ObservationIgnored private var accountSyncTask: Task<Void, Never>?
-    @ObservationIgnored private var accountSyncID = UUID()
-    @ObservationIgnored private var authenticationEpoch = UUID()
-    @ObservationIgnored private let serverDefaultsKey = "agentsAnywhere.serverURL"
-    @ObservationIgnored private let tokenAccount = "accessToken"
-    @ObservationIgnored private let dashboardClientId = "ios-dashboard-\(UUID().uuidString)"
-    @ObservationIgnored private var lastDashboardRefreshAt: Date?
-    @ObservationIgnored private var dashboardUpdatesTask: Task<Void, Never>?
-    @ObservationIgnored private var cachedServices: V2ClientServices?
-    @ObservationIgnored private var cachedServicesTokenProvider: MutableAuthTokenProvider?
+    private let keychain = KeychainStore()
+    private let restoration = V2RestorationStore()
+    private var accountSyncTask: Task<Void, Never>?
+    private var accountSyncID = UUID()
+    private var authenticationEpoch = UUID()
+    private let serverDefaultsKey = "agentsAnywhere.serverURL"
+    private let tokenAccount = "accessToken"
+    private let dashboardClientId = "ios-dashboard-\(UUID().uuidString)"
+    private var lastDashboardRefreshAt: Date?
+    private var dashboardUpdatesTask: Task<Void, Never>?
+    private var cachedServices: V2ClientServices?
+    private var cachedServicesTokenProvider: MutableAuthTokenProvider?
     /// Keychain is the durable source; view bodies and task identities read
     /// this copy instead of performing a Security framework round trip each time.
-    @ObservationIgnored private var cachedToken: String?
-    @ObservationIgnored private var isInBackground = false
-    @ObservationIgnored private var visibleSessionID: V2SessionID?
+    private var cachedToken: String?
+    private var isInBackground = false
+    private var visibleSessionID: V2SessionID?
 
     init() {
         Task { await restoreSession() }
@@ -140,7 +140,7 @@ final class AppState {
                     restoreConnectionError = error.localizedDescription
                     // A transport failure retains the profile, route and cache.
                     // Backoff performs reads only; pending sends are never replayed.
-                    do { try await Task.sleep(for: .seconds(min(5 * (1 << min(attempt, 3)), 30))) } catch { return }
+                    do { try await compatSleep(seconds: min(5 * (1 << min(attempt, 3)), 30)) } catch { return }
                     attempt += 1
                 }
             }
@@ -360,7 +360,7 @@ final class AppState {
     func renameSession(sessionId: V2SessionID, title: String) async -> Bool {
         sessionActionError = nil
         guard let services = makeV2Services() else {
-            sessionActionError = String(localized: "The signed-in server is unavailable.")
+            sessionActionError = L("The signed-in server is unavailable.")
             return false
         }
         do {
@@ -383,7 +383,7 @@ final class AppState {
     func setSessionPinned(sessionId: V2SessionID, pinned: Bool) async -> Bool {
         sessionActionError = nil
         guard let services = makeV2Services() else {
-            sessionActionError = String(localized: "The signed-in server is unavailable.")
+            sessionActionError = L("The signed-in server is unavailable.")
             return false
         }
         do {
@@ -404,7 +404,7 @@ final class AppState {
     func setSessionsArchived(sessionIds: [V2SessionID], archived: Bool) async -> Bool {
         sessionActionError = nil
         guard let services = makeV2Services() else {
-            sessionActionError = String(localized: "The signed-in server is unavailable.")
+            sessionActionError = L("The signed-in server is unavailable.")
             return false
         }
         do {
@@ -433,7 +433,7 @@ final class AppState {
         guard !isAccountWorking else { return false }
         accountError = nil
         guard let services = makeV2Services() else {
-            accountError = String(localized: "The signed-in server is unavailable.")
+            accountError = L("The signed-in server is unavailable.")
             return false
         }
         isAccountWorking = true
@@ -454,7 +454,7 @@ final class AppState {
         guard !isAccountWorking else { return false }
         accountError = nil
         guard let services = makeV2Services() else {
-            accountError = String(localized: "The signed-in server is unavailable.")
+            accountError = L("The signed-in server is unavailable.")
             return false
         }
         isAccountWorking = true
@@ -475,7 +475,7 @@ final class AppState {
         guard !isAccountWorking else { return false }
         accountError = nil
         guard let services = makeV2Services() else {
-            accountError = String(localized: "The signed-in server is unavailable.")
+            accountError = L("The signed-in server is unavailable.")
             return false
         }
         isAccountWorking = true
@@ -496,7 +496,7 @@ final class AppState {
         guard !isAccountWorking else { return false }
         accountError = nil
         guard let services = makeV2Services() else {
-            accountError = String(localized: "The signed-in server is unavailable.")
+            accountError = L("The signed-in server is unavailable.")
             return false
         }
         isAccountWorking = true
@@ -731,7 +731,7 @@ final class AppState {
             }
 
             do {
-                try await Task.sleep(for: .seconds(min(1 << min(attempt, 4), 15)))
+                try await compatSleep(seconds: min(1 << min(attempt, 4), 15))
                 attempt += 1
             } catch {
                 return

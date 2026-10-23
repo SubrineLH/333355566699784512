@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct ChatComposer: View {
-    @Bindable var draft: ComposerDraft
+    @ObservedObject var draft: ComposerDraft
     let editor: ComposerEditorController
     let isStreaming: Bool
     var canSend = true
     var canStop = true
     var isBusy = false
-    var placeholder = String(localized: "询问 Agents")
+    var placeholder = L("询问 Agents")
     let maximumEditorHeight: CGFloat
     let controls: ChatControlMetrics
     let onSend: () -> Void
@@ -24,72 +24,109 @@ struct ChatComposer: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glass
 
-    var body: some View {
-        GlassEffectContainer(spacing: 12) {
-            VStack(spacing: 0) {
-                if !draft.attachments.isEmpty { attachmentTray }
-                ComposerLayout(expanded: draft.isExpanded, maximumEditorHeight: maximumEditorHeight, controls: controls) {
-                    Button(action: onOptions) {
-                        AppSymbol("plus", size: 24)
-                            .frame(width: controls.touchTarget, height: controls.touchTarget)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "附件与对话选项"))
-                    .accessibilityIdentifier("chat.composer.options")
 
-                    ZStack(alignment: .topLeading) {
-                        if draft.text.isEmpty {
-                            Text(placeholder)
-                                .font(.body)
-                                .lineLimit(1)
-                                .foregroundStyle(.secondary)
-                                .allowsHitTesting(false)
-                        }
-                        NativeComposerEditor(draft: draft, controller: editor, maximumHeight: maximumEditorHeight, onCommandSend: onSend)
-                    }
-
-                    Button(action: isStreaming ? onStop : onSend) {
-                        AppSymbol(isStreaming ? "stop.fill" : "arrow.up", size: isStreaming ? 13 : 18)
-                            .contentTransition(.symbolEffect(.replace))
-                            .foregroundStyle(AppTheme.primaryControlForeground(colorScheme))
-                            .frame(width: controls.sendDiameter, height: controls.sendDiameter)
-                            .background(AppTheme.primaryControlBackground(colorScheme).opacity((isStreaming ? canStop : canSend && draft.canAttemptSend) && !isBusy ? 1 : 0.42), in: Circle())
-                            .frame(width: controls.touchTarget, height: controls.touchTarget)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isBusy || (isStreaming ? !canStop : !canSend || !draft.canAttemptSend))
-                    .accessibilityLabel(isStreaming ? String(localized: "停止生成") : String(localized: "发送消息"))
-                    .accessibilityHint(draft.isComposing ? String(localized: "请先确认输入法候选文字") : "")
-                    .accessibilityIdentifier("chat.composer.send")
-
-                    if showsCommands {
-                        Button(action: onCommands) {
-                            AppSymbol("command", size: 18)
-                                .foregroundStyle(commandsActive ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                                .frame(width: controls.touchTarget, height: controls.touchTarget)
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(String(localized: "指令"))
-                        .accessibilityAddTraits(commandsActive ? .isSelected : [])
-                        .accessibilityIdentifier("chat.composer.commands")
-                    }
-                }
-            }
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: draft.isExpanded ? controls.expandedCornerRadius : controls.collapsedCornerRadius))
-            .glassEffectID("composer", in: glass)
+    private var optionsButton: some View {
+        Button(action: onOptions) {
+            AppSymbol("plus", size: 24)
+                .frame(width: controls.touchTarget, height: controls.touchTarget)
+                .contentShape(Circle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L("附件与对话选项"))
+        .accessibilityIdentifier("chat.composer.options")
+    }
+
+    private var editorArea: some View {
+        ZStack(alignment: .topLeading) {
+            if draft.text.isEmpty {
+                Text(placeholder)
+                    .font(.body)
+                    .lineLimit(1)
+                    .foregroundColor(.secondary)
+                    .allowsHitTesting(false)
+            }
+            NativeComposerEditor(draft: draft, controller: editor, maximumHeight: maximumEditorHeight, onCommandSend: onSend)
+        }
+        .frame(maxHeight: maximumEditorHeight)
+    }
+
+    private var sendButton: some View {
+        Button(action: isStreaming ? onStop : onSend) {
+            AppSymbol(isStreaming ? "stop.fill" : "arrow.up", size: isStreaming ? 13 : 18)
+                .compatContentTransition(.interpolate)
+                .foregroundColor(AppTheme.primaryControlForeground(colorScheme))
+                .frame(width: controls.sendDiameter, height: controls.sendDiameter)
+                .background(AppTheme.primaryControlBackground(colorScheme).opacity((isStreaming ? canStop : canSend && draft.canAttemptSend) && !isBusy ? 1 : 0.42), in: Circle())
+                .frame(width: controls.touchTarget, height: controls.touchTarget)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isBusy || (isStreaming ? !canStop : !canSend || !draft.canAttemptSend))
+        .accessibilityLabel(isStreaming ? L("停止生成") : L("发送消息"))
+        .accessibilityHint(draft.isComposing ? L("请先确认输入法候选文字") : "")
+        .accessibilityIdentifier("chat.composer.send")
+    }
+
+    @ViewBuilder private var commandsButton: some View {
+        if showsCommands {
+            Button(action: onCommands) {
+                AppSymbol("command", size: 18)
+                    .foregroundColor(commandsActive ? Color.accentColor : Color.secondary)
+                    .frame(width: controls.touchTarget, height: controls.touchTarget)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("指令"))
+            .accessibilityAddTraits(commandsActive ? .isSelected : [])
+            .accessibilityIdentifier("chat.composer.commands")
+        }
+    }
+
+    private var collapsedRow: some View {
+        HStack(spacing: 0) {
+            optionsButton
+            editorArea.frame(maxWidth: .infinity)
+            commandsButton
+            sendButton
+        }
+        .padding(.leading, controls.collapsedInset + controls.collapsedTextGap)
+        .padding(.trailing, controls.collapsedInset)
+        .frame(height: controls.diameter)
+    }
+
+    private var expandedRow: some View {
+        VStack(spacing: 0) {
+            editorArea
+                .padding(.horizontal, controls.textInset)
+                .padding(.top, controls.textInset)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 0) {
+                optionsButton
+                Spacer(minLength: 0)
+                commandsButton
+                sendButton
+            }
+            .padding(.horizontal, controls.textInset - controls.collapsedInset)
+            .padding(.top, controls.textToActions)
+            .padding(.bottom, controls.expandedBottomInset)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if !draft.attachments.isEmpty { attachmentTray }
+            if draft.isExpanded { expandedRow } else { collapsedRow }
+        }
+        .compatGlassEffect(.regular.interactive(), in: .rect(cornerRadius: draft.isExpanded ? controls.expandedCornerRadius : controls.collapsedCornerRadius))
         .padding(.horizontal, draft.isExpanded ? ChatControlMetrics.expandedHorizontalInset : ChatControlMetrics.collapsedHorizontalInset)
         .padding(.top, 8)
         .padding(.bottom, 10)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.24), value: draft.isExpanded)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.24))
         // The composer is the only subtree that already re-evaluates on every
         // keystroke, including each Chinese IME marked-text update. Observing
         // the draft from the page root re-evaluated the whole conversation.
-        .onChange(of: draft.text) { _, _ in onDraftChange() }
-        .onChange(of: draft.attachments) { _, _ in onDraftChange() }
+        .compatOnChange(of: draft.text) { _, _ in onDraftChange() }
+        .compatOnChange(of: draft.attachments) { _, _ in onDraftChange() }
     }
 
     private var attachmentTray: some View {
@@ -102,7 +139,7 @@ struct ChatComposer: View {
                 }
             }
         }
-        .scrollIndicators(.hidden)
+        .compatScrollIndicators(.hidden)
         .padding(.horizontal, 12)
         .padding(.top, 12)
     }

@@ -26,47 +26,47 @@ enum V2BusinessError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .emptyMessage:
-            return String(localized: "Enter a message before sending.")
+            return L("Enter a message before sending.")
         case .emptySessionSelection:
-            return String(localized: "Select at least one session.")
+            return L("Select at least one session.")
         case .tooManySessions:
-            return String(localized: "Select no more than 200 sessions at once.")
+            return L("Select no more than 200 sessions at once.")
         case .emptySessionTitle:
-            return String(localized: "Enter a session title.")
+            return L("Enter a session title.")
         case .emptyAvatar:
-            return String(localized: "Choose an avatar image before uploading.")
+            return L("Choose an avatar image before uploading.")
         case .passwordTooShort:
-            return String(localized: "Password must be at least 8 characters.")
+            return L("Password must be at least 8 characters.")
         case .passwordMismatch:
-            return String(localized: "Passwords do not match.")
+            return L("Passwords do not match.")
         case .emptyDeviceName:
-            return String(localized: "Enter a device name before continuing.")
+            return L("Enter a device name before continuing.")
         case .invalidPairingCode:
-            return String(localized: "Enter the 6-digit pairing code shown on the device.")
+            return L("Enter the 6-digit pairing code shown on the device.")
         case .pairingNotClaimed:
-            return String(localized: "The server did not accept this pairing request.")
+            return L("The server did not accept this pairing request.")
         case .signedInServerUnavailable:
-            return String(localized: "The signed-in server is unavailable.")
+            return L("The signed-in server is unavailable.")
         case .invalidRuntimeConfigSchema:
-            return String(localized: "The runtime configuration schema is unavailable or invalid.")
+            return L("The runtime configuration schema is unavailable or invalid.")
         case let .invalidRuntimeConfigField(title):
-            return String(localized: "Enter a valid value for \(title).")
+            return L("Enter a valid value for \(title).")
         case let .tooManyAttachments(maximum):
-            return String(localized: "Attach no more than \(maximum) files.")
+            return L("Attach no more than \(maximum) files.")
         case let .emptyAttachment(name):
-            return String(localized: "The attachment '\(name)' is empty.")
+            return L("The attachment '\(name)' is empty.")
         case .emptyAttachmentSelection:
-            return String(localized: "Choose at least one file to upload.")
+            return L("Choose at least one file to upload.")
         case let .attachmentTooLarge(name):
-            return String(localized: "The attachment '\(name)' exceeds the 25 MiB file limit.")
+            return L("The attachment '\(name)' exceeds the 25 MiB file limit.")
         case .invalidPageSize:
-            return String(localized: "The requested page size is outside the supported range.")
+            return L("The requested page size is outside the supported range.")
         case let .workspaceFilesUnavailable(message):
             return message
         case .workspaceEntryNotPreviewable:
-            return String(localized: "This workspace item cannot be previewed.")
+            return L("This workspace item cannot be previewed.")
         case .invalidWorkspacePreviewURL:
-            return String(localized: "The file preview URL is invalid.")
+            return L("The file preview URL is invalid.")
         }
     }
 }

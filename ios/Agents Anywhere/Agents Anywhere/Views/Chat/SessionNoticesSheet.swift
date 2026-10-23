@@ -3,9 +3,9 @@ import SwiftUI
 struct SessionNoticesSheet: View {
     let model: SessionChatModel
     var initialNoticeID: String? = nil
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 16) {
@@ -16,9 +16,9 @@ struct SessionNoticesSheet: View {
                 }
                 .onAppear { if let initialNoticeID { proxy.scrollTo(initialNoticeID, anchor: .top) } }
             }
-            .navigationTitle(String(localized: "交互与通知"))
+            .navigationTitle(L("交互与通知"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { SheetCloseToolbar { dismiss() } }
+            .toolbar { SheetCloseToolbar { presentationMode.wrappedValue.dismiss() } }
         }
         .appSheetPresentation(.compact)
     }

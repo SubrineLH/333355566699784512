@@ -59,12 +59,12 @@ struct AppGlassButton: View {
     var body: some View {
         if style == .prominent {
             button
-                .buttonStyle(.glassProminent)
-                .tint(AppTheme.primaryControlBackground(colorScheme))
-                .foregroundStyle(AppTheme.primaryControlForeground(colorScheme))
+                .buttonStyle(CompatProminentButtonStyle())
+                .accentColor(AppTheme.primaryControlBackground(colorScheme))
+                .foregroundColor(AppTheme.primaryControlForeground(colorScheme))
         } else {
             button
-                .buttonStyle(.glass)
+                .buttonStyle(CompatBorderedButtonStyle())
         }
     }
 
@@ -72,19 +72,19 @@ struct AppGlassButton: View {
         Button(role: role, action: action) {
             label
                 .opacity(isLoading ? 0 : 1)
-                .overlay {
+                .compatOverlay {
                     if isLoading {
                         ProgressView()
                             .scaleEffect(0.75)
-                            .tint(progressTint)
+                            .accentColor(progressTint)
                     }
                 }
                 .frame(maxWidth: maxWidth)
         }
-        .buttonBorderShape(title == nil ? .circle : .capsule)
-        .controlSize(.large)
+        .compatButtonBorderShape(title == nil ? .circle : .capsule)
+        .compatControlSize(.large)
         .disabled(disabled || isLoading)
-        .animation(.easeInOut(duration: 0.18), value: isLoading)
+        .animation(.easeInOut(duration: 0.18))
     }
 
     private var label: some View {

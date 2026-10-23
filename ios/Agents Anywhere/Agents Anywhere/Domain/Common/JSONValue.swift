@@ -82,9 +82,9 @@ nonisolated enum JSONValue: Codable, Hashable {
             if let message = value["message"]?.displayString {
                 return message
             }
-            return String(localized: "Request failed")
+            return L("Request failed")
         case .null:
-            return String(localized: "Request failed")
+            return L("Request failed")
         }
     }
 

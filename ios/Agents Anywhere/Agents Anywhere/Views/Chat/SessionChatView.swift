@@ -18,7 +18,7 @@ struct SessionChatView: View, Equatable {
     @State private var previewURL: URL?
     @State private var previewDirectory: URL?
     @State private var isDownloading = false
-    @State private var toasts = ChatToastStore()
+    @StateObject private var toasts = ChatToastStore()
     @State private var pendingTakeover: Bool?
     @State private var hasStartedLoading = false
     @Environment(\.colorScheme) private var colorScheme
@@ -59,15 +59,15 @@ struct SessionChatView: View, Equatable {
                     Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-                .overlay {
+                .compatOverlay {
                     if model.isOpeningReady && model.timeline.rows.isEmpty && model.timeline.pendingMessages.isEmpty {
                         VStack(spacing: 12) {
-                            Text(String(localized: "在这里继续你的任务")).foregroundStyle(.secondary)
+                            Text(L("在这里继续你的任务")).foregroundColor(.secondary)
                         }.allowsHitTesting(false)
                     }
                 }
-                .overlay { if !model.isOpeningReady { openingMask } }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
+                .compatOverlay { if !model.isOpeningReady { openingMask } }
+                .compatSafeAreaInset(edge: .bottom, spacing: 0) {
                     VStack(spacing: 0) {
                         SessionInteractionDock(chat: model,
                             onShowAll: { expandedNoticeID = $0; sheet = .notices })
@@ -78,7 +78,7 @@ struct SessionChatView: View, Equatable {
                             canSelectModel: session.runtime.allows("catalog.model"),
                             canSelectPermission: session.runtime.allows("catalog.permission"),
                             isStreaming: model.isRunning, canStop: session.runtime.allows("session.interrupt"),
-                            isBusy: model.isWorking || !model.isOpeningReady, placeholder: requiresTakeover ? String(localized: "请先接管") : String(localized: "询问 Agents"),
+                            isBusy: model.isWorking || !model.isOpeningReady, placeholder: requiresTakeover ? L("请先接管") : L("询问 Agents"),
                             isLoadingSettings: model.isLoadingSettings,
                             settingsError: model.settingsError, sessionChat: model,
                             onSend: model.send, onStop: model.interrupt, onLoadSettings: model.loadSettings,
@@ -90,7 +90,7 @@ struct SessionChatView: View, Equatable {
                     // Native safe-area layout owns both the visible scroll
                     // region and the dock's space; do not add a second margin.
                 }
-                .overlay(alignment: .topLeading) {
+                .compatOverlay(alignment: .topLeading) {
                     VStack(alignment: .leading, spacing: 4) {
                         // Metadata can arrive after history. Transient controls
                         // float below the header instead of resizing its inset.
@@ -105,20 +105,20 @@ struct SessionChatView: View, Equatable {
                     }.padding(.top, 8)
                 }
         }
-        .modifier(ChatPageToolbar(title: session.metadata?.title ?? String(localized: "会话"),
-            subtitle: [session.metadata?.runtimeName ?? session.metadata?.runtime ?? String(localized: "Agent"),
+        .modifier(ChatPageToolbar(title: session.metadata?.title ?? L("会话"),
+            subtitle: [session.metadata?.runtimeName ?? session.metadata?.runtime ?? L("Agent"),
                 deviceName ?? session.metadata?.connectorId].compactMap { $0 }.joined(separator: " · "),
             status: model.headerStatus, alignsTitleLeading: true, onMenu: onMenu))
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Button { sheet = .files } label: { AppSymbol("folder") }
-                    .accessibilityLabel(String(localized: "文件管理"))
+                    .accessibilityLabel(L("文件管理"))
                     .disabled(session.metadata?.cwd?.isEmpty != false)
                 Menu {
-                    Button(String(localized: "会话详情与导出"), systemImage: "info.circle") { sheet = .details }
-                    Button(String(localized: "复制会话 ID"), systemImage: "number") { UIPasteboard.general.string = session.id }
+                    Button(L("会话详情与导出"), systemImage: "info.circle") { sheet = .details }
+                    Button(L("复制会话 ID"), systemImage: "number") { UIPasteboard.general.string = session.id }
                 } label: { AppSymbol("ellipsis") }
-                .accessibilityLabel(String(localized: "会话菜单"))
+                .accessibilityLabel(L("会话菜单"))
             }
         }
         .modifier(SessionTakeoverConfirmation(pending: $pendingTakeover, isDsh: model.isDsh) { enabled in
@@ -133,13 +133,13 @@ struct SessionChatView: View, Equatable {
             guard !hasStartedLoading, settled else { return }
             // Show feedback immediately, but let the drawer's completed
             // animation and the selection's final layout leave the main thread.
-            do { try await Task.sleep(for: .milliseconds(120)) } catch { return }
+            do { try await compatSleep(milliseconds: 120) } catch { return }
             guard !Task.isCancelled else { return }
             var transaction = Transaction(animation: nil)
             transaction.disablesAnimations = true
             withTransaction(transaction) { hasStartedLoading = true }
         }
-        .task(id: hasStartedLoading) {
+        .compatTask(id: hasStartedLoading) {
             guard hasStartedLoading else { return }
             // Reattaching a loaded detail only resumes observation.
             await model.prepareOpening()
@@ -154,7 +154,7 @@ struct SessionChatView: View, Equatable {
                 if let meta = session.metadata, let cwd = meta.cwd {
                     WorkspaceFilesSheet(connectorId: meta.connectorId,
                         deviceName: deviceName ?? meta.connectorId,
-                        workspace: V2DeviceWorkspace(path: cwd, name: String(localized: "会话文件"), sessionCount: 1, lastActiveAt: nil),
+                        workspace: V2DeviceWorkspace(path: cwd, name: L("会话文件"), sessionCount: 1, lastActiveAt: nil),
                         service: fileService, session: session)
                 }
             case .preview(let reference, let root):
@@ -172,33 +172,33 @@ struct SessionChatView: View, Equatable {
             return ["https", "http", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
         })
         .quickLookPreview($previewURL)
-        .onChange(of: previewURL) { _, url in if url == nil { cleanPreview() } }
+        .compatOnChange(of: previewURL) { _, url in if url == nil { cleanPreview() } }
         .onDisappear { if previewURL == nil { cleanPreview() } }
-        .onChange(of: session.failure, initial: true) { _, failure in
+        .compatOnChange(of: session.failure, initial: true) { _, failure in
             toasts.update(source: "session", failure: failure, canRetry: failure?.kind != .authentication)
         }
-        .onChange(of: model.error, initial: true) { _, message in
+        .compatOnChange(of: model.error, initial: true) { _, message in
             toasts.update(source: "operation", failure: message.map { V2ClientFailure(kind: .rejected, message: $0) })
         }
-        .onChange(of: model.commandFailure) { _, feedback in
+        .compatOnChange(of: model.commandFailure) { _, feedback in
             // Each command failure is new, even when its text repeats a dismissed one.
             toasts.update(source: "command", failure: nil)
             toasts.update(source: "command", failure: feedback.map { V2ClientFailure(kind: .rejected, message: $0.message ?? "") }, title: feedback?.title)
         }
-        .onChange(of: model.openingError, initial: true) { _, message in
+        .compatOnChange(of: model.openingError, initial: true) { _, message in
             toasts.update(source: "opening", failure: message.map { V2ClientFailure(kind: .unavailable, message: $0) })
         }
     }
 
     private var openingMask: some View {
         ZStack {
-            Color(uiColor: .systemBackground)
+            Color(UIColor.systemBackground)
             VStack(spacing: 12) {
                 if let error = model.openingError, !model.timeline.hasPresentedSnapshot {
-                    Text(error).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                    Button(String(localized: "重试")) { Task { await model.prepareOpening() } }
+                    Text(error).font(.subheadline).foregroundColor(.secondary).multilineTextAlignment(.center)
+                    Button(L("重试")) { Task { await model.prepareOpening() } }
                 } else {
-                    ProgressView().progressViewStyle(.circular).accessibilityLabel(String(localized: "正在加载会话"))
+                    ProgressView().progressViewStyle(.circular).accessibilityLabel(L("正在加载会话"))
                 }
             }
             .padding(24).frame(maxWidth: 320)
@@ -208,11 +208,11 @@ struct SessionChatView: View, Equatable {
 
     private var takeoverPill: some View {
         Button { pendingTakeover = true } label: {
-            Label(String(localized: "接管会话以继续交互"), appSymbol: "hand.raised")
+            Label(L("接管会话以继续交互"), appSymbol: "hand.raised")
                 .font(.footnote.weight(.medium))
-                .foregroundStyle(AppTheme.primaryText(colorScheme))
+                .foregroundColor(AppTheme.primaryText(colorScheme))
                 .padding(.horizontal, 14).frame(minHeight: takeoverPillHeight)
-                .glassEffect(.regular.interactive(), in: .capsule)
+                .compatGlassEffect(.regular.interactive(), in: .capsule)
                 .frame(minHeight: 44).contentShape(Rectangle())
         }
         .buttonStyle(.plain).disabled(!model.canChangeTakeover)
@@ -237,8 +237,8 @@ struct SessionChatView: View, Equatable {
                 guard session.isValid, sheet == nil else { return }
                 cleanPreview()
                 let directory = FileManager.default.temporaryDirectory.appendingPathComponent("aa-preview-\(UUID().uuidString)", isDirectory: true)
-                let name = (file.name ?? String(localized: "Attachment")) as NSString
-                let safeName = name.lastPathComponent.isEmpty ? String(localized: "Attachment") : name.lastPathComponent
+                let name = (file.name ?? L("Attachment")) as NSString
+                let safeName = name.lastPathComponent.isEmpty ? L("Attachment") : name.lastPathComponent
                 let url = directory.appendingPathComponent(safeName)
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
                 try data.write(to: url, options: [.atomic, .completeFileProtection])
@@ -261,22 +261,22 @@ private struct CommandSuccessToast: View {
     var body: some View {
         Button(action: onDismiss) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                AppSymbol("checkmark.circle", size: 14).foregroundStyle(.secondary)
+                AppSymbol("checkmark.circle", size: 14).foregroundColor(.secondary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(feedback.title).font(.subheadline.weight(.medium))
                     if let message = feedback.message, !message.isEmpty {
-                        Text(message).font(.footnote).foregroundStyle(.secondary).lineLimit(3)
+                        Text(message).font(.footnote).foregroundColor(.secondary).lineLimit(3)
                     }
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 10)
-            .glassEffect(.regular, in: .rect(cornerRadius: 20))
+            .compatGlassEffect(.regular, in: .rect(cornerRadius: 20))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, ChatControlMetrics.collapsedHorizontalInset)
-        .accessibilityHint(String(localized: "轻点关闭"))
-        .task(id: feedback.id) {
-            try? await Task.sleep(for: .seconds(4))
+        .accessibilityHint(L("轻点关闭"))
+        .compatTask(id: feedback.id) {
+            try? await compatSleep(seconds: 4)
             if !Task.isCancelled { onDismiss() }
         }
     }

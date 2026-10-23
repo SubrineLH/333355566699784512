@@ -31,7 +31,7 @@ struct AccountPasswordDraft {
 }
 
 struct AccountAvatarDraft {
-    var selectedItem: PhotosPickerItem?
+    var selectedItem: CompatPhotosPickerItem?
     var selectedImage: UIImage?
     var zoom: CGFloat = 1
     var offset = CGSize.zero

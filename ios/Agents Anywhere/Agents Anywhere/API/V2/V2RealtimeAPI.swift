@@ -12,16 +12,17 @@ nonisolated struct V2RealtimeAPI: V2RealtimeAPIProtocol {
     let transport: any HTTPTransport
     let webSocketTransport: any WebSocketTransport
     let decoder: JSONDecoder
-    let heartbeatTimeout: Duration
-    let heartbeatCheckInterval: Duration
+    // `Duration` is iOS 16, so both windows are plain seconds.
+    let heartbeatTimeout: TimeInterval
+    let heartbeatCheckInterval: TimeInterval
 
     init(
         serverURL: URL,
         transport: any HTTPTransport,
         webSocketTransport: any WebSocketTransport,
         decoder: JSONDecoder = JSONDecoder(),
-        heartbeatTimeout: Duration = .seconds(45),
-        heartbeatCheckInterval: Duration = .seconds(15)
+        heartbeatTimeout: TimeInterval = 45,
+        heartbeatCheckInterval: TimeInterval = 15
     ) {
         self.serverURL = serverURL.normalizedV2ServerURL()
         self.transport = transport
@@ -72,14 +73,14 @@ nonisolated struct V2RealtimeAPI: V2RealtimeAPIProtocol {
     ) throws -> AsyncThrowingStream<Value, Error> {
         let connection = webSocketTransport.connect(url: try webSocketURL(path: path, ticket: ticket))
         return AsyncThrowingStream(bufferingPolicy: .bufferingOldest(2048)) { continuation in
-            var lastFrame = ContinuousClock.now
+            var lastFrame = compatUptime()
             // Both session and dashboard endpoints send a frame/keepalive every 15s.
             // Path monitoring alone cannot detect a silent server or broken VPN route.
             let watchdog = Task {
                 do {
                     while !Task.isCancelled {
-                        try await Task.sleep(for: heartbeatCheckInterval)
-                        if lastFrame.duration(to: .now) >= heartbeatTimeout {
+                        try await compatSleep(seconds: heartbeatCheckInterval)
+                        if compatUptime() - lastFrame >= heartbeatTimeout {
                             continuation.finish(throwing: URLError(.timedOut))
                             connection.close()
                             return
@@ -90,7 +91,7 @@ nonisolated struct V2RealtimeAPI: V2RealtimeAPIProtocol {
             let task = Task {
                 do {
                     for try await data in connection.messages() {
-                        lastFrame = .now
+                        lastFrame = compatUptime()
                         // Keepalive detection and value decoding share one parse.
                         guard let value = try decoder.decode(V2SocketFrame<Value>.self, from: data).value else { continue }
                         if case .dropped = continuation.yield(value) {
@@ -99,7 +100,7 @@ nonisolated struct V2RealtimeAPI: V2RealtimeAPIProtocol {
                     }
                     continuation.finish()
                 } catch let error as DecodingError {
-                    continuation.finish(throwing: HTTPError.decoding(message: String(localized: "实时更新：\(error.v2Description)")))
+                    continuation.finish(throwing: HTTPError.decoding(message: L("实时更新：\(error.v2Description)")))
                 } catch {
                     continuation.finish(throwing: error)
                 }

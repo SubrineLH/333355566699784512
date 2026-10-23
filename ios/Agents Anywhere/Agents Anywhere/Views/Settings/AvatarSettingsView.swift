@@ -2,8 +2,8 @@ import PhotosUI
 import SwiftUI
 
 struct AvatarSettingsView: View {
-    @Environment(AppState.self) private var appState
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.presentationMode) private var presentationMode
 
     @Binding var draft: AccountAvatarDraft
     @State private var localError: String?
@@ -23,13 +23,13 @@ struct AvatarSettingsView: View {
             }
 
             Section {
-                PhotosPicker(selection: $draft.selectedItem, matching: .images) {
-                    Label(String(localized: "Choose photo"), appSymbol: "photo.on.rectangle")
+                CompatPhotosPicker(selection: Binding(get: { draft.selectedItem.map { [$0] } ?? [] }, set: { draft.selectedItem = $0.first }), matching: .images) {
+                    Label(L("Choose photo"), appSymbol: "photo.on.rectangle")
                 }
 
                 if draft.selectedImage != nil {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(String(localized: "Zoom"))
+                        Text(L("Zoom"))
                             .font(.subheadline)
                         Slider(value: $draft.zoom, in: 1 ... 3)
                     }
@@ -39,22 +39,22 @@ struct AvatarSettingsView: View {
 
             if appState.me?.avatar != nil {
                 Section {
-                    Button(String(localized: "Remove profile photo"), role: .destructive, action: removeAvatar)
+                    Button(L("Remove profile photo"), role: .destructive, action: removeAvatar)
                         .disabled(appState.isAccountWorking)
                 }
             }
         }
-        .navigationTitle(String(localized: "Profile photo"))
+        .navigationTitle(L("Profile photo"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             SheetSaveToolbar(isWorking: appState.isAccountWorking, saveDisabled: draft.selectedImage == nil, onSave: uploadAvatar)
         }
         .disabled(appState.isAccountWorking)
-        .onChange(of: draft.selectedItem) { _, nextItem in
+        .compatOnChange(of: draft.selectedItem) { _, nextItem in
             guard let nextItem else { return }
             Task { await loadImage(nextItem) }
         }
-        .onChange(of: draft.zoom) { _, nextZoom in
+        .compatOnChange(of: draft.zoom) { _, nextZoom in
             guard let selectedImage = draft.selectedImage else { return }
             draft.offset = AccountAvatarProcessor.clampedOffset(
                 image: selectedImage,
@@ -62,8 +62,8 @@ struct AvatarSettingsView: View {
                 candidate: draft.offset
             )
         }
-        .alert(String(localized: "Could not use photo"), isPresented: localErrorBinding) {
-            Button(String(localized: "OK"), role: .cancel) {
+        .compatAlert(L("Could not use photo"), isPresented: localErrorBinding) {
+            Button(L("OK"), role: .cancel) {
                 localError = nil
             }
         } message: {
@@ -80,7 +80,7 @@ struct AvatarSettingsView: View {
         )
     }
 
-    private func loadImage(_ item: PhotosPickerItem) async {
+    private func loadImage(_ item: CompatPhotosPickerItem) async {
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 throw AccountAvatarProcessingError.invalidImage
@@ -108,7 +108,7 @@ struct AvatarSettingsView: View {
             Task {
                 if await appState.updateAccountAvatar(dataURL: dataURL) {
                     draft = AccountAvatarDraft()
-                    dismiss()
+                    presentationMode.wrappedValue.dismiss()
                 }
             }
         } catch {
@@ -150,7 +150,7 @@ private struct AvatarEditorPreview: View {
                     height: AccountAvatarProcessor.outputSize
                 )
                 .clipShape(Circle())
-                .overlay {
+                .compatOverlay {
                     Circle()
                         .strokeBorder(.white.opacity(0.9), lineWidth: 2)
                 }

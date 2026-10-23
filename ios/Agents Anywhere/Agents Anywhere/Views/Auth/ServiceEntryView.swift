@@ -1,22 +1,22 @@
 import SwiftUI
 
 struct ServiceEntryView: View {
-    @Environment(AppState.self) private var appState
+    @EnvironmentObject private var appState: AppState
     @State private var showsPrivacyPolicy = false
     var onManualLogin: () -> Void = {}
     var onQRCodeLogin: () -> Void = {}
 
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             AuthWelcomeLayout {
                 AuthBrandLockup()
 
                 VStack(spacing: 12) {
-                    AuthPrimaryButton(title: String(localized: "QR Code Login"), systemImage: "qrcode.viewfinder") {
+                    AuthPrimaryButton(title: L("QR Code Login"), systemImage: "qrcode.viewfinder") {
                         onQRCodeLogin()
                     }
 
-                    AuthGlassButton(String(localized: "Manual Login"), systemImage: "link") {
+                    AuthGlassButton(L("Manual Login"), systemImage: "link") {
                         onManualLogin()
                     }
                 }
@@ -25,16 +25,16 @@ struct ServiceEntryView: View {
                 if let error = appState.authError {
                     Text(error)
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundColor(.red)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 340)
                 }
             }
             .navigationTitle("")
-            .safeAreaInset(edge: .bottom) {
-                Button(String(localized: "privacyPolicy.title")) { showsPrivacyPolicy = true }
+            .compatSafeAreaInset(edge: .bottom) {
+                Button(L("privacyPolicy.title")) { showsPrivacyPolicy = true }
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                     .frame(minHeight: 44)
                     .padding(.horizontal, 24)
                     .buttonStyle(.plain)
@@ -48,5 +48,5 @@ struct ServiceEntryView: View {
 
 #Preview {
     ServiceEntryView()
-        .environment(AppState())
+        .environmentObject(AppState())
 }

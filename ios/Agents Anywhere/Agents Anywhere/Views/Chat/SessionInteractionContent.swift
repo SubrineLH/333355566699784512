@@ -8,19 +8,19 @@ struct SessionInteractionContent: View {
     @State private var showsDetails = false
 
     var body: some View {
-        TimelineView(NoticeExpiryClock(expiresAt: item.expiresAt)) { timeline in
+        CompatTimelineView(until: item.expiresAt) { now in
             VStack(alignment: .leading, spacing: 14) {
                 Label(item.notice.title, appSymbol: icon).font(.subheadline.weight(.semibold))
-                    .foregroundStyle(item.notice.severity == "error" ? Color.red : Color.primary)
-                if let message = item.notice.message { Text(message).font(.subheadline).foregroundStyle(.secondary) }
+                    .foregroundColor(item.notice.severity == "error" ? Color.red : Color.primary)
+                if let message = item.notice.message { Text(message).font(.subheadline).foregroundColor(.secondary) }
                 if showsContext {
                     if item.notice.context != .object([:]) {
                         Text(item.notice.context.readableText)
-                            .font(.system(.footnote, design: .monospaced)).textSelection(.enabled)
+                            .font(.system(.footnote, design: .monospaced)).compatTextSelection()
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 } else {
-                    Button(String(localized: "操作详情"), appSymbol: "arrow.up.right.square") { showsDetails = true }
+                    Button(L("操作详情"), appSymbol: "arrow.up.right.square") { showsDetails = true }
                         .font(.footnote).frame(minHeight: 44)
                 }
                 if let form = item.form {
@@ -40,24 +40,24 @@ struct SessionInteractionContent: View {
                             }
                         }
                     } else if action.input.required {
-                        Text(String(localized: "此操作的表单版本暂未支持，请在 Web 中处理。"))
-                            .font(.footnote).foregroundStyle(.secondary)
+                        Text(L("此操作的表单版本暂未支持，请在 Web 中处理。"))
+                            .font(.footnote).foregroundColor(.secondary)
                     }
                 }
                 if item.notice.type == "interaction" {
-                    SessionInteractionActions(item: item, chat: chat, now: timeline.date)
+                    SessionInteractionActions(item: item, chat: chat, now: now)
                 }
-                submissionStatus(at: timeline.date)
-                if let error = item.responseError { Text(error).font(.footnote).foregroundStyle(.secondary) }
+                submissionStatus(at: now)
+                if let error = item.responseError { Text(error).font(.footnote).foregroundColor(.secondary) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .background(Color(uiColor: .secondarySystemBackground), in: .rect(cornerRadius: 22))
+            .compatBackground(Color(UIColor.secondarySystemBackground), in: .rect(cornerRadius: 22))
         }
         .sheet(isPresented: $showsDetails) { SessionInteractionDetailsSheet(item: item, chat: chat) }
-        .confirmationDialog(String(localized: "回应结果尚未确认。再次回应前，请确认 Agent 仍在等待此操作。"), isPresented: $confirmsRetry, titleVisibility: .visible) {
-            Button(String(localized: "已检查，允许再次回应")) { item.acknowledgeUncertain() }
-            Button(String(localized: "取消"), role: .cancel) {}
+        .compatConfirmationDialog(L("回应结果尚未确认。再次回应前，请确认 Agent 仍在等待此操作。"), isPresented: $confirmsRetry, titleVisibility: .visible) {
+            Button(L("已检查，允许再次回应")) { item.acknowledgeUncertain() }
+            Button(L("取消"), role: .cancel) {}
         }
     }
 
@@ -73,7 +73,7 @@ struct SessionInteractionContent: View {
 
     private func questionFields(_ question: NoticeInputQuestion) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let header = question.header { Text(header).font(.caption).foregroundStyle(.secondary) }
+            if let header = question.header { Text(header).font(.caption).foregroundColor(.secondary) }
             Text(question.prompt).font(.subheadline.weight(.medium))
             ForEach(question.options) { option in
                 Button { item.select(option.id, question: question) } label: {
@@ -83,7 +83,7 @@ struct SessionInteractionContent: View {
                             : (question.multiple ? "square" : "circle"))
                         VStack(alignment: .leading, spacing: 4) {
                             Text(option.label).font(.subheadline)
-                            if let detail = option.detail { Text(detail).font(.footnote).foregroundStyle(.secondary) }
+                            if let detail = option.detail { Text(detail).font(.footnote).foregroundColor(.secondary) }
                         }
                         Spacer(minLength: 0)
                     }.frame(minHeight: 44).contentShape(Rectangle())
@@ -100,9 +100,9 @@ struct SessionInteractionContent: View {
                             : (question.multiple ? "square" : "circle"))
                             .frame(width: 28, height: 44)
                     }
-                    .buttonStyle(.plain).accessibilityLabel(String(localized: "其他回答"))
+                    .buttonStyle(.plain).accessibilityLabel(L("其他回答"))
                     .accessibilityAddTraits(selected ? .isSelected : [])
-                    NoticeTextInput(value: item.custom[question.id] ?? "", placeholder: String(localized: "其他回答"),
+                    NoticeTextInput(value: item.custom[question.id] ?? "", placeholder: L("其他回答"),
                         onFocus: { item.setCustomSelected(true, question: question) },
                         onEditingEnded: { setComposing(false, id: $0) },
                         onChange: { text, marked, editorID in
@@ -121,35 +121,35 @@ struct SessionInteractionContent: View {
 
     @ViewBuilder private func submissionStatus(at now: Date) -> some View {
         if item.submission == .accepted {
-            Text(String(localized: "回应已提交，等待 Agent 确认")).font(.footnote).foregroundStyle(.secondary)
+            Text(L("回应已提交，等待 Agent 确认")).font(.footnote).foregroundColor(.secondary)
         } else if case .sending = item.submission {
-            Text(String(localized: "正在提交回应…")).font(.footnote).foregroundStyle(.secondary)
+            Text(L("正在提交回应…")).font(.footnote).foregroundColor(.secondary)
         } else if item.isExpired(at: now) {
-            Text(String(localized: "此交互已过期，等待 Agent 更新状态。"))
-                .font(.footnote).foregroundStyle(.secondary)
+            Text(L("此交互已过期，等待 Agent 更新状态。"))
+                .font(.footnote).foregroundColor(.secondary)
         } else if let reason = chat.responseUnavailableReason {
             Text(reason)
-                .font(.footnote).foregroundStyle(.secondary)
+                .font(.footnote).foregroundColor(.secondary)
             if chat.session.network.availability != .offline && chat.session.metadata?.connectorStatus == .online {
-                Button(String(localized: "刷新状态")) { Task { await chat.session.refresh() } }
+                Button(L("刷新状态")) { Task { await chat.session.refresh() } }
                     .font(.footnote).disabled(chat.session.isLoading || chat.isWorking)
             }
         } else {
             switch item.submission {
-            case .sending: Text(String(localized: "正在提交回应…")).font(.footnote).foregroundStyle(.secondary)
-            case .accepted: Text(String(localized: "回应已提交，等待 Agent 确认")).font(.footnote).foregroundStyle(.secondary)
+            case .sending: Text(L("正在提交回应…")).font(.footnote).foregroundColor(.secondary)
+            case .accepted: Text(L("回应已提交，等待 Agent 确认")).font(.footnote).foregroundColor(.secondary)
             case .uncertain:
-                Text(String(localized: "回应结果未确认，不会自动重试。"))
-                    .font(.footnote).foregroundStyle(.secondary)
-                Button(String(localized: "重新检查状态")) { Task { await chat.session.refresh() } }.font(.footnote)
-                Button(String(localized: "处理未确认的回应")) { confirmsRetry = true }.font(.footnote)
+                Text(L("回应结果未确认，不会自动重试。"))
+                    .font(.footnote).foregroundColor(.secondary)
+                Button(L("重新检查状态")) { Task { await chat.session.refresh() } }.font(.footnote)
+                Button(L("处理未确认的回应")) { confirmsRetry = true }.font(.footnote)
             case .idle:
                 if [.responding, .responseAccepted, .resolving].contains(item.notice.status) {
-                    Text(String(localized: "\(chat.agentName) 正在处理回应…")).font(.footnote).foregroundStyle(.secondary)
+                    Text(L("\(chat.agentName) 正在处理回应…")).font(.footnote).foregroundColor(.secondary)
                 }
                 if item.notice.status == .failed {
-                    Text(String(localized: "上次回应未完成，请检查后重新选择。"))
-                        .font(.footnote).foregroundStyle(.secondary)
+                    Text(L("上次回应未完成，请检查后重新选择。"))
+                        .font(.footnote).foregroundColor(.secondary)
                 }
             case .unavailable: EmptyView()
             }
@@ -164,20 +164,20 @@ private struct NoticeTextInput: View {
     var onEditingEnded: (String) -> Void = { _ in }
     let onChange: (String, Bool, String) -> Void
     @State private var editorID = UUID().uuidString
-    @State private var draft = ComposerDraft()
+    @StateObject private var draft = ComposerDraft()
     @State private var editor = ComposerEditorController()
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            if draft.text.isEmpty { Text(placeholder).foregroundStyle(.secondary).allowsHitTesting(false) }
+            if draft.text.isEmpty { Text(placeholder).foregroundColor(.secondary).allowsHitTesting(false) }
             NativeComposerEditor(draft: draft, controller: editor, maximumHeight: 120,
                 onCommandSend: {}, onTextChange: { text, marked in onChange(text, marked, editorID) })
                 .frame(minHeight: 44)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .font(.body).padding(10).background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
-        .onChange(of: draft.isFocused) { _, focused in if focused { onFocus() } }
-        .onChange(of: value, initial: true) { _, text in
+        .font(.body).padding(10).background(RoundedRectangle(cornerRadius: 12).fill(Color(UIColor.quaternaryLabel).opacity(0.5)))
+        .compatOnChange(of: draft.isFocused) { _, focused in if focused { onFocus() } }
+        .compatOnChange(of: value, initial: true) { _, text in
             if !draft.isComposing, draft.text != text { draft.text = text }
         }
         // Delegate callbacks commit current native text. Only release the IME
@@ -196,7 +196,7 @@ private struct NoticeActionFields: View {
             ForEach(form.fields) { field in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(field.title).font(.subheadline)
-                    if let detail = field.detail { Text(detail).font(.footnote).foregroundStyle(.secondary) }
+                    if let detail = field.detail { Text(detail).font(.footnote).foregroundColor(.secondary) }
                     input(field)
                 }
             }
@@ -211,7 +211,7 @@ private struct NoticeActionFields: View {
         case let .text(secure):
             if secure {
                 SecureField(field.title, text: Binding(get: { value(field)?.stringValue ?? "" }, set: { set(.string($0), field: field) }))
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .compatTextInputAutocapitalization(.never).compatAutocorrectionDisabled()
             } else {
                 NoticeTextInput(value: value(field)?.stringValue ?? "", placeholder: field.title,
                     onEditingEnded: { item.composingFields.remove($0) }, onChange: { text, marked, editorID in
@@ -224,7 +224,7 @@ private struct NoticeActionFields: View {
                 .keyboardType(.numbersAndPunctuation)
         case .boolean:
             Toggle(field.title, isOn: Binding(get: { value(field)?.boolValue ?? false }, set: { set(.bool($0), field: field) }))
-                .toggleStyle(.switch).tint(nil).accentColor(nil)
+                .toggleStyle(.switch).accentColor(nil).accentColor(nil)
         case let .choice(options):
             ForEach(Array(options.enumerated()), id: \.offset) { _, option in
                 Button { set(option, field: field) } label: {

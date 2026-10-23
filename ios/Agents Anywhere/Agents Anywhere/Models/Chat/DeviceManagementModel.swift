@@ -1,17 +1,16 @@
 import Foundation
-import Observation
+import Combine
 
 @MainActor
-@Observable
-final class DeviceManagementModel {
-    private(set) var sessions: [V2SessionMeta] = []
-    private(set) var isDeviceActionRunning = false
-    private(set) var isArchiveActionRunning = false
-    var sessionFilter = V2DeviceSessionFilter.active
-    var projectID: String?
-    var selectedSessionIds: Set<V2SessionID> = []
-    var isSelectingSessions = false
-    var errorMessage: String?
+final class DeviceManagementModel: ObservableObject {
+    @Published private(set) var sessions: [V2SessionMeta] = []
+    @Published private(set) var isDeviceActionRunning = false
+    @Published private(set) var isArchiveActionRunning = false
+    @Published var sessionFilter = V2DeviceSessionFilter.active
+    @Published var projectID: String?
+    @Published var selectedSessionIds: Set<V2SessionID> = []
+    @Published var isSelectingSessions = false
+    @Published var errorMessage: String?
 
     var filteredSessions: [V2SessionMeta] {
         sessions.filter { session in
@@ -46,7 +45,7 @@ final class DeviceManagementModel {
             selectedSessionIds.remove(sessionId)
         } else {
             guard selectedSessionIds.count < 200 else {
-                errorMessage = String(localized: "Select no more than 200 sessions at once."); return
+                errorMessage = L("Select no more than 200 sessions at once."); return
             }
             selectedSessionIds.insert(sessionId)
         }

@@ -1,15 +1,15 @@
 import Foundation
-import Observation
+import Combine
 
 /// Editors bind to each row, never to an index in the parent's mutable array.
 /// A field can finish an edit after deletion or reset without accessing another
 /// row or writing the removed row back into the configuration.
-@MainActor @Observable
-final class RuntimeEnvironmentRow: Identifiable {
+@MainActor
+final class RuntimeEnvironmentRow: Identifiable, ObservableObject {
     let id = UUID()
-    var key: String
-    var value: String
-    var removesInherited: Bool
+    @Published var key: String
+    @Published var value: String
+    @Published var removesInherited: Bool
 
     init(key: String = "", value: String = "", removesInherited: Bool = false) {
         self.key = key
@@ -18,11 +18,11 @@ final class RuntimeEnvironmentRow: Identifiable {
     }
 }
 
-@MainActor @Observable
-final class RuntimeEffortRow: Identifiable {
+@MainActor
+final class RuntimeEffortRow: Identifiable, ObservableObject {
     let id = UUID()
-    var effortID: String
-    var displayName: String
+    @Published var effortID: String
+    @Published var displayName: String
 
     init(effortID: String = "", displayName: String = "") {
         self.effortID = effortID
@@ -30,12 +30,12 @@ final class RuntimeEffortRow: Identifiable {
     }
 }
 
-@MainActor @Observable
-final class RuntimeCustomModelRow: Identifiable {
+@MainActor
+final class RuntimeCustomModelRow: Identifiable, ObservableObject {
     let id = UUID()
-    var modelID: String
-    var displayName: String
-    var efforts: [RuntimeEffortRow]
+    @Published var modelID: String
+    @Published var displayName: String
+    @Published var efforts: [RuntimeEffortRow]
 
     init(modelID: String = "", displayName: String = "", efforts: [RuntimeEffortRow] = []) {
         self.modelID = modelID

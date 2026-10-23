@@ -1,0 +1,96 @@
+name: iOS 14 build
+
+on:
+  push:
+    branches: [ios14]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios14-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Xcode 26 is required twice over: project.pbxproj uses objectVersion 90
+    # (Xcode 16+ format) and the sources rely on SWIFT_DEFAULT_ACTOR_ISOLATION,
+    # which is a Swift 6.2 feature. Xcode 27 turns "deployment target below the
+    # supported range" into a hard error, so the newest Xcode 26.x is picked.
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select the newest Xcode 26
+        run: |
+          set -euo pipefail
+          ls /Applications | grep -i '^Xcode' || true
+          CANDIDATES=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V -r)
+          for app in $CANDIDATES; do
+            version=$("$app/Contents/Developer/usr/bin/xcodebuild" -version 2>/dev/null | head -1 || true)
+            echo "found: $app -> $version"
+            if echo "$version" | grep -q 'Xcode 26'; then
+              echo "DEVELOPER_DIR=$app/Contents/Developer" >> "$GITHUB_ENV"
+              sudo xcode-select -s "$app/Contents/Developer"
+              echo "selected: $app"
+              break
+            fi
+          done
+          xcodebuild -version
+          swift --version
+
+      - name: Show scheme metadata
+        working-directory: ios
+        run: xcodebuild -list -project "Agents Anywhere/Agents Anywhere.xcodeproj"
+
+      - name: Build for device (unsigned)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "Agents Anywhere/Agents Anywhere.xcodeproj" \
+            -scheme "Agents Anywhere" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build 2>&1 | tee /tmp/build.log
+
+      - name: Summarise errors
+        if: always()
+        run: |
+          echo "=== error lines ==="
+          grep -E "error:" /tmp/build.log | sort -u | head -80 || echo "no errors matched"
+          echo "=== warning count ==="
+          grep -cE "warning:" /tmp/build.log || true
+
+      - name: Package unsigned IPA
+        if: success()
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          APP="build/Build/Products/Release-iphoneos/Agents Anywhere.app"
+          test -d "$APP"
+          rm -rf Payload AgentsAnywhere-iOS14-unsigned.ipa
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          /usr/bin/zip -qry AgentsAnywhere-iOS14-unsigned.ipa Payload
+          ls -lh AgentsAnywhere-iOS14-unsigned.ipa
+          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" "Payload/Agents Anywhere.app/Info.plist" || true
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: AgentsAnywhere-iOS14-unsigned
+          path: ios/AgentsAnywhere-iOS14-unsigned.ipa
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: /tmp/build.log
+          if-no-files-found: warn

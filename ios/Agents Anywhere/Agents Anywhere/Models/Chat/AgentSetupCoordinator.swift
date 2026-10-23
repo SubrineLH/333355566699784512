@@ -1,29 +1,29 @@
 import Foundation
-import Observation
+import Combine
 
 /// Pairing observation belongs to the account, not the lifetime of a sheet.
 /// Background/offline transitions pause reads and retain the pending devices.
-@MainActor @Observable
-final class AgentSetupCoordinator {
+@MainActor
+final class AgentSetupCoordinator: ObservableObject {
     struct Request: Identifiable {
         var connector: V2Connector
         var ready = false
         var error: String?
         var id: String { connector.id }
     }
-    private(set) var requests: [Request] = []
-    private(set) var selectedSetupID: String?
-    var pairingFormPresented = false
-    @ObservationIgnored var onOnline: ((V2Connector) -> Void)?
-    @ObservationIgnored private let service: V2DevicePairingService
-    @ObservationIgnored private let sleep: (Duration) async throws -> Void
-    @ObservationIgnored private var tasks: [String: Task<Void, Never>] = [:]
-    @ObservationIgnored private var isActive = true
-    @ObservationIgnored private var isOnline = true
-    @ObservationIgnored private var isValid = true
-    @ObservationIgnored private var generation = 0
+    @Published private(set) var requests: [Request] = []
+    @Published private(set) var selectedSetupID: String?
+    @Published var pairingFormPresented = false
+    var onOnline: ((V2Connector) -> Void)?
+    private let service: V2DevicePairingService
+    private let sleep: (TimeInterval) async throws -> Void
+    private var tasks: [String: Task<Void, Never>] = [:]
+    private var isActive = true
+    private var isOnline = true
+    private var isValid = true
+    private var generation = 0
 
-    init(service: V2DevicePairingService, sleep: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }) {
+    init(service: V2DevicePairingService, sleep: @escaping (TimeInterval) async throws -> Void = { try await compatSleep(seconds: $0) }) {
         self.service = service; self.sleep = sleep
     }
     var presentedConnector: V2Connector? {
@@ -79,7 +79,7 @@ final class AgentSetupCoordinator {
                 if connector.status == .online {
                     markReady(connector); onOnline?(connector); return
                 }
-                try await sleep(.seconds(2))
+                try await sleep(2)
             } catch {
                 guard current(id, version) else { return }
                 let failure = V2ClientFailure(error)
@@ -88,7 +88,7 @@ final class AgentSetupCoordinator {
                     if let index = requests.firstIndex(where: { $0.id == id }) { requests[index].error = failure.message }
                     return
                 }
-                do { try await sleep(.seconds(3)) } catch { return }
+                do { try await sleep(3) } catch { return }
             }
         }
     }

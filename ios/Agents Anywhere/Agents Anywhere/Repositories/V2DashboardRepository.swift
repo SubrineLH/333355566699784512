@@ -1,33 +1,33 @@
 import Foundation
-import Observation
+import Combine
 
 /// Account-scoped list cache. HTTP, push and explicit mutations share a revision
 /// fence, so a late read cannot replace a newer snapshot or user action.
-@MainActor @Observable
-final class V2DashboardRepository {
+@MainActor
+final class V2DashboardRepository: ObservableObject {
     let sidebarPreferences: ProjectSidebarPreferences
-    private(set) var connectors: [V2Connector] = []
-    private(set) var projects: [V2Project] = []
-    private(set) var sessions: [V2SessionMeta] = []
-    private(set) var isLoading = false
-    private(set) var hasLoaded = false
-    private(set) var isFresh = false
-    private(set) var error: String?
-    private(set) var network = V2NetworkStatus()
-    @ObservationIgnored var onChange: (() -> Void)?
-    @ObservationIgnored var reconcile: (V2SessionMeta) -> V2SessionMeta = { $0 }
-    @ObservationIgnored private let localStore: V2LocalStore?
-    @ObservationIgnored private var persistenceTask: Task<Void, Never>?
-    @ObservationIgnored private let service: V2DashboardService
-    @ObservationIgnored private var generation = 0
-    @ObservationIgnored private var isValid = true
-    @ObservationIgnored private var projectGeneration = 0
-    @ObservationIgnored private var projectRefreshTask: Task<Bool, Never>?
-    @ObservationIgnored private var projectRefreshID: UUID?
-    @ObservationIgnored private var projectRefreshGeneration: Int?
-    @ObservationIgnored private var checkedMissingProjects: Set<String> = []
+    @Published private(set) var connectors: [V2Connector] = []
+    @Published private(set) var projects: [V2Project] = []
+    @Published private(set) var sessions: [V2SessionMeta] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var hasLoaded = false
+    @Published private(set) var isFresh = false
+    @Published private(set) var error: String?
+    @Published private(set) var network = V2NetworkStatus()
+    var onChange: (() -> Void)?
+    var reconcile: (V2SessionMeta) -> V2SessionMeta = { $0 }
+    private let localStore: V2LocalStore?
+    private var persistenceTask: Task<Void, Never>?
+    private let service: V2DashboardService
+    private var generation = 0
+    private var isValid = true
+    private var projectGeneration = 0
+    private var projectRefreshTask: Task<Bool, Never>?
+    private var projectRefreshID: UUID?
+    private var projectRefreshGeneration: Int?
+    private var checkedMissingProjects: Set<String> = []
     /// Set by list mutations; loading-flag changes republish without a disk write.
-    @ObservationIgnored private var isDirty = false
+    private var isDirty = false
 
     init(service: V2DashboardService, localStore: V2LocalStore? = nil, scope: V2ClientScope? = nil, defaults: UserDefaults = .standard) {
         self.service = service; self.localStore = localStore
@@ -50,7 +50,7 @@ final class V2DashboardRepository {
         if persist { isDirty = true }
         guard isValid, hasLoaded, isDirty, localStore != nil, persistenceTask == nil else { return }
         persistenceTask = Task { [weak self] in
-            do { try await Task.sleep(for: .milliseconds(500)) } catch { return }
+            do { try await compatSleep(milliseconds: 500) } catch { return }
             await self?.flushCache()
         }
     }
@@ -168,7 +168,7 @@ final class V2DashboardRepository {
         projects = latest.projects; changed()
         let os = connectors.first { $0.id == connectorID }?.deviceOs
         guard let key = ProjectWorkspacePath.key(path, deviceOS: os) else {
-            throw V2BusinessError.workspaceFilesUnavailable(message: String(localized: "请输入设备上的完整绝对路径。"))
+            throw V2BusinessError.workspaceFilesUnavailable(message: L("请输入设备上的完整绝对路径。"))
         }
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let existing = latest.projects.first { $0.connectorId == connectorID && ProjectWorkspacePath.key($0.workspacePath, deviceOS: os) == key }

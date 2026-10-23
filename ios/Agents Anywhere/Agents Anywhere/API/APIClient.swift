@@ -9,9 +9,9 @@ enum APIClientError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidServerURL:
-            return String(localized: "Enter a valid server URL.")
+            return L("Enter a valid server URL.")
         case .invalidResponse:
-            return String(localized: "The server returned an invalid response.")
+            return L("The server returned an invalid response.")
         case let .server(_, detail):
             return detail
         case let .decoding(detail):

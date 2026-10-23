@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 struct RuntimeConfigurationSheet: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     let displayName: String
     let allowsNaming: Bool
     private let initialName: String
@@ -13,7 +13,7 @@ struct RuntimeConfigurationSheet: View {
     @State private var instanceName: String
     @State private var isSaving = false
     @State private var confirmsDiscard = false
-    @State private var toasts = ChatToastStore()
+    @StateObject private var toasts = ChatToastStore()
 
     init(runtime: V2DeviceRuntime, schema: V2RuntimeConfigSchema, startAfterSaving: Bool,
          canSave: Bool = true, onSave: @escaping ([String: JSONValue]) async throws -> Void) {
@@ -32,13 +32,13 @@ struct RuntimeConfigurationSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             ScrollViewReader { proxy in
                 Form {
                     Group {
                         if allowsNaming {
-                            Section(String(localized: "Instance name")) {
-                                TextField(String(localized: "dashboard.device.runtimeNamePlaceholder"), text: $instanceName)
+                            Section(L("Instance name")) {
+                                TextField(L("dashboard.device.runtimeNamePlaceholder"), text: $instanceName)
                                     .runtimeConfigInput()
                             }
                         }
@@ -46,49 +46,49 @@ struct RuntimeConfigurationSheet: View {
                             RuntimeConfigurationFieldView(field: field, model: model).id(field.id)
                         }
                         if !canSave {
-                            Label(String(localized: "Device disconnected. Your changes are kept until it reconnects."), appSymbol: "wifi.slash")
-                                .font(.footnote).foregroundStyle(.secondary)
+                            Label(L("Device disconnected. Your changes are kept until it reconnects."), appSymbol: "wifi.slash")
+                                .font(.footnote).foregroundColor(.secondary)
                         }
                     }
                 }
                 .frame(maxWidth: 720).frame(maxWidth: .infinity)
-                .scrollDismissesKeyboard(.interactively)
-                .onChange(of: model.errors) { _, errors in
+                .compatScrollDismissesKeyboard(.interactively)
+                .compatOnChange(of: model.errors) { _, errors in
                     if let first = model.schema.fields.first(where: { errors[$0.id] != nil }) {
                         withAnimation(.smooth) { proxy.scrollTo(first.id, anchor: .top) }
                     }
                 }
             }
             .disabled(isSaving)
-            .navigationTitle(Text(String(localized: "Configure \(displayName)")))
+            .navigationTitle(Text(L("Configure \(displayName)")))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                SheetEditorToolbar(saveTitle: allowsNaming ? String(localized: "Add") : String(localized: "Save"),
+                SheetEditorToolbar(saveTitle: allowsNaming ? L("Add") : L("Save"),
                     isWorking: isSaving,
                     saveDisabled: !canSave || (allowsNaming && instanceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty),
-                    onCancel: { if hasChanges { confirmsDiscard = true } else { dismiss() } },
+                    onCancel: { if hasChanges { confirmsDiscard = true } else { presentationMode.wrappedValue.dismiss() } },
                     onSave: {
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         Task { await Task.yield(); await save() }
                     })
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .compatSafeAreaInset(edge: .bottom, spacing: 0) {
                 HStack(spacing: 16) {
                     Button {
                         model.resetDefaults()
                     } label: {
-                        Label(String(localized: "Reset all defaults"), appSymbol: "arrow.counterclockwise")
+                        Label(L("Reset all defaults"), appSymbol: "arrow.counterclockwise")
                             .font(.subheadline).lineLimit(2)
                     }.disabled(isSaving)
                     Spacer(minLength: 0)
                 }
                 .padding(18).frame(maxWidth: 720).frame(maxWidth: .infinity)
-                .background(.bar)
+                .background(Color(UIColor.systemBackground))
             }
-            .overlay(alignment: .top) { ChatErrorToasts(store: toasts, isRetrying: false, onRetry: { _ in }) }
+            .compatOverlay(alignment: .top) { ChatErrorToasts(store: toasts, isRetrying: false, onRetry: { _ in }) }
         }
-        .appSheetPresentation(.expanded).interactiveDismissDisabled(isSaving || hasChanges)
-        .confirmDiscardChanges($confirmsDiscard) { dismiss() }
+        .appSheetPresentation(.expanded).compatInteractiveDismissDisabled(isSaving || hasChanges)
+        .confirmDiscardChanges($confirmsDiscard) { presentationMode.wrappedValue.dismiss() }
     }
     private var hasChanges: Bool { model.hasChanges || instanceName != initialName }
     private func save() async {
@@ -98,7 +98,7 @@ struct RuntimeConfigurationSheet: View {
             isSaving = true
             defer { isSaving = false }
             try await onSave(instanceName.trimmingCharacters(in: .whitespacesAndNewlines), config)
-            dismiss()
+            presentationMode.wrappedValue.dismiss()
         } catch is RuntimeConfigurationValidationError {
             // Field validation remains inline, with focus on the first invalid group.
         } catch {

@@ -2,11 +2,11 @@ import SwiftUI
 import UIKit
 
 struct ChatShellView: View {
-    @Environment(AppState.self) private var appState
+    @EnvironmentObject private var appState: AppState
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    @State private var sidebar = ChatSidebarState()
+    @StateObject private var sidebar = ChatSidebarState()
     @State private var newSessionPresentationID = UUID()
     private var selection: ChatShellSelection {
         get { appState.chatSelection }
@@ -14,23 +14,23 @@ struct ChatShellView: View {
     }
 
     var body: some View {
-        // NavigationSplitView adapts to a single stack in a compact system size
+        // CompatSplitView adapts to a single stack in a compact system size
         // class. Use that same system trait for the drawer fallback, never a
         // device model, screen measurement or custom window-width breakpoint.
         let layout = ChatSidebarState.Layout.resolve(
             hasRegularWidth: horizontalSizeClass == .regular
         )
         sidebarLayout(layout)
-        .onChange(of: layout, initial: true) { _, next in sidebar.setLayout(next) }
-        .task(id: NewSessionLoadKey(target: appState.nativeChatServices?.newSession.refreshKey,
+        .compatOnChange(of: layout, initial: true) { _, next in sidebar.setLayout(next) }
+        .compatTask(id: NewSessionLoadKey(target: appState.nativeChatServices?.newSession.refreshKey,
             presentationID: newSessionPresentationID)) {
             // Warm the next draft even when launch restores a session/device.
             // Remounting the welcome view no longer starts its first data load.
             guard let model = appState.nativeChatServices?.newSession else { return }
             await model.refresh(connectors: appState.connectors)
         }
-        .alert(String(localized: "Could not update session"), isPresented: sessionActionErrorBinding) {
-            Button(String(localized: "OK"), role: .cancel) {
+        .compatAlert(L("Could not update session"), isPresented: sessionActionErrorBinding) {
+            Button(L("OK"), role: .cancel) {
                 appState.dismissSessionActionError()
             }
         } message: {
@@ -44,7 +44,7 @@ struct ChatShellView: View {
                 }
             }
         }
-        .onChange(of: visibleSessionID, initial: true) { _, id in
+        .compatOnChange(of: visibleSessionID, initial: true) { _, id in
             appState.setVisibleSession(id)
         }
         .onDisappear { appState.setVisibleSession(nil) }
@@ -308,10 +308,10 @@ private struct ChatShellPlaceholderPage: View {
 
     var body: some View {
         Color(.systemBackground)
-            .overlay {
+            .compatOverlay {
                 if isConnecting {
-                    Label(String(localized: "正在连接，首次同步后即可保留本地内容"), appSymbol: "network")
-                        .font(.footnote).foregroundStyle(.secondary).padding(24)
+                    Label(L("正在连接，首次同步后即可保留本地内容"), appSymbol: "network")
+                        .font(.footnote).foregroundColor(.secondary).padding(24)
                 }
             }
             .modifier(ChatPageToolbar(title: title, onMenu: onOpenSidebar))
@@ -320,6 +320,6 @@ private struct ChatShellPlaceholderPage: View {
 
 #Preview {
     ChatShellView()
-        .environment(AppState())
+        .environmentObject(AppState())
         .preferredColorScheme(.dark)
 }

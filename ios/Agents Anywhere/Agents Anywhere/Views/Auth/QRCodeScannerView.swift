@@ -63,33 +63,33 @@ final class ScannerViewController: UIViewController, AVCaptureMetadataOutputObje
                     if granted {
                         self?.setupCaptureSession()
                     } else {
-                        self?.onError?(String(localized: "Camera access is required to scan the login QR code."))
+                        self?.onError?(L("Camera access is required to scan the login QR code."))
                     }
                 }
             }
         case .denied, .restricted:
-            onError?(String(localized: "Camera access is required to scan the login QR code."))
+            onError?(L("Camera access is required to scan the login QR code."))
         @unknown default:
-            onError?(String(localized: "Camera is not available."))
+            onError?(L("Camera is not available."))
         }
     }
 
     private func setupCaptureSession() {
         guard let device = AVCaptureDevice.default(for: .video) else {
-            onError?(String(localized: "Camera is not available."))
+            onError?(L("Camera is not available."))
             return
         }
         do {
             let input = try AVCaptureDeviceInput(device: device)
             guard session.canAddInput(input) else {
-                onError?(String(localized: "Camera input is not available."))
+                onError?(L("Camera input is not available."))
                 return
             }
             session.addInput(input)
 
             let output = AVCaptureMetadataOutput()
             guard session.canAddOutput(output) else {
-                onError?(String(localized: "QR scanner output is not available."))
+                onError?(L("QR scanner output is not available."))
                 return
             }
             session.addOutput(output)
@@ -113,7 +113,7 @@ final class ScannerViewController: UIViewController, AVCaptureMetadataOutputObje
 
     private func addOverlay() {
         let label = UILabel()
-        label.text = String(localized: "Scan Agents Anywhere QR")
+        label.text = L("Scan Agents Anywhere QR")
         label.textColor = .white
         label.font = .systemFont(ofSize: 17, weight: .semibold)
         label.textAlignment = .center

@@ -1,22 +1,22 @@
 import Foundation
-import Observation
+import Combine
 
 /// Stable row identity: streamed changes only invalidate the affected row's observable value.
-@MainActor @Observable
-final class V2TimelineItemModel: Identifiable {
+@MainActor
+final class V2TimelineItemModel: Identifiable, ObservableObject {
     let id: V2TimelineItemID
-    private(set) var value: V2TimelineItem
+    @Published private(set) var value: V2TimelineItem
 
     init(_ value: V2TimelineItem) { id = value.id; self.value = value }
     func update(_ value: V2TimelineItem) { if self.value != value { self.value = value } }
 }
 
-@MainActor @Observable
-final class V2SessionRuntimeModel {
-    private(set) var state: V2RuntimeState?
-    private(set) var capabilities: V2RuntimeCapabilitySnapshot?
-    private(set) var notices: [V2RuntimeNotice] = []
-    private(set) var isFresh = false
+@MainActor
+final class V2SessionRuntimeModel: ObservableObject {
+    @Published private(set) var state: V2RuntimeState?
+    @Published private(set) var capabilities: V2RuntimeCapabilitySnapshot?
+    @Published private(set) var notices: [V2RuntimeNotice] = []
+    @Published private(set) var isFresh = false
 
     func allows(_ id: V2CapabilityID) -> Bool {
         guard isFresh, let capability = capabilities?.capability(id: id) else { return false }
@@ -36,8 +36,8 @@ final class V2SessionRuntimeModel {
     }
 }
 
-@MainActor @Observable
-final class V2PendingMessage: Identifiable {
+@MainActor
+final class V2PendingMessage: Identifiable, ObservableObject {
     enum Delivery: Hashable {
         case sending, accepted, confirmed
         case uncertain(V2ClientFailure)
@@ -45,11 +45,11 @@ final class V2PendingMessage: Identifiable {
     }
     let id: String
     let content: String
-    private(set) var attachmentIDs: [V2AttachmentID]
+    @Published private(set) var attachmentIDs: [V2AttachmentID]
     let localAttachmentIDs: [String]
-    private(set) var attachments: [ChatAttachment]
-    private(set) var delivery: Delivery = .sending
-    var didRestoreDraft = false
+    @Published private(set) var attachments: [ChatAttachment]
+    @Published private(set) var delivery: Delivery = .sending
+    @Published var didRestoreDraft = false
 
     init(id: String, content: String, attachmentIDs: [V2AttachmentID], localAttachmentIDs: [String] = [], attachments: [ChatAttachment] = []) {
         self.id = id; self.content = content; self.attachmentIDs = attachmentIDs
@@ -72,34 +72,34 @@ final class V2PendingMessage: Identifiable {
 
 /// SwiftUI owns a reference obtained from repository.session(id:). Use connect() in
 /// a view .task; cancellation releases that view's subscription. DTOs never own I/O.
-@MainActor @Observable
-final class V2SessionModel: Identifiable {
+@MainActor
+final class V2SessionModel: Identifiable, ObservableObject {
     let id: V2SessionID
     let scope: V2ClientScope
     let runtime = V2SessionRuntimeModel()
     let notices = SessionNoticeStore()
-    private(set) var metadata: V2SessionMeta?
-    private(set) var timeline: [V2TimelineItemModel] = []
-    private(set) var connection = V2SessionConnectionState.inactive
-    private(set) var network = V2NetworkStatus()
-    private(set) var failure: V2ClientFailure?
-    private(set) var hasOlderItems = false
-    private(set) var hasNewerItems = false
-    private(set) var isLoading = false
-    private(set) var isLoadingHistory = false
-    private(set) var isValid = true
-    var isPerformingAction = false
-    private(set) var pendingMessages: [V2PendingMessage] = []
-    private(set) var awaitingReplyID: String?
+    @Published private(set) var metadata: V2SessionMeta?
+    @Published private(set) var timeline: [V2TimelineItemModel] = []
+    @Published private(set) var connection = V2SessionConnectionState.inactive
+    @Published private(set) var network = V2NetworkStatus()
+    @Published private(set) var failure: V2ClientFailure?
+    @Published private(set) var hasOlderItems = false
+    @Published private(set) var hasNewerItems = false
+    @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingHistory = false
+    @Published private(set) var isValid = true
+    @Published var isPerformingAction = false
+    @Published private(set) var pendingMessages: [V2PendingMessage] = []
+    @Published private(set) var awaitingReplyID: String?
     let composer = ComposerDraft()
     let attachmentPreviews = ChatAttachmentStore()
     var draft: String {
         get { composer.text }
         set { composer.text = newValue }
     }
-    var draftAttachmentIDs: [V2AttachmentID] = []
-    @ObservationIgnored private weak var repository: V2SessionRepository?
-    @ObservationIgnored private var rowsByID: [V2TimelineItemID: V2TimelineItemModel] = [:]
+    @Published var draftAttachmentIDs: [V2AttachmentID] = []
+    private weak var repository: V2SessionRepository?
+    private var rowsByID: [V2TimelineItemID: V2TimelineItemModel] = [:]
 
     init(id: V2SessionID, scope: V2ClientScope, repository: V2SessionRepository) {
         self.id = id; self.scope = scope; self.repository = repository
@@ -151,7 +151,7 @@ final class V2SessionModel: Identifiable {
     /// but is not a promise of backend idempotency.
     @discardableResult func sendDraft(upload: ((V2PendingMessage) async throws -> Void)? = nil) async -> V2PendingMessage? {
         guard let repository, canSend else {
-            failure = V2ClientFailure(kind: .unavailable, message: String(localized: "Wait for the session to reconnect before sending."))
+            failure = V2ClientFailure(kind: .unavailable, message: L("Wait for the session to reconnect before sending."))
             return nil
         }
         let content = draft
@@ -286,7 +286,7 @@ final class V2SessionModel: Identifiable {
         pendingMessages = archive.pending.map { value in
             let pending = V2PendingMessage(id: value.id, content: value.content, attachmentIDs: value.attachmentIDs,
                 localAttachmentIDs: value.attachments.map(\.id), attachments: value.attachments)
-            let failure = V2ClientFailure(kind: .unavailable, message: value.error ?? String(localized: "上次发送的结果尚未确认，正在同步记录。请确认后再重试。"))
+            let failure = V2ClientFailure(kind: .unavailable, message: value.error ?? L("上次发送的结果尚未确认，正在同步记录。请确认后再重试。"))
             pending.update(value.rejected ? .rejected(failure) : .uncertain(failure))
             attachmentPreviews.remember(value.attachments, clientID: value.id)
             return pending

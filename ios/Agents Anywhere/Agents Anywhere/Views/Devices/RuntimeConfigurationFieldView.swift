@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RuntimeConfigurationFieldView: View {
     let field: V2RuntimeConfigField
-    @Bindable var model: RuntimeConfigurationModel
+    @ObservedObject var model: RuntimeConfigurationModel
     @Environment(\.locale) private var locale
 
     private var title: String { RuntimeConfigCopy.title(field, locale: locale) }
@@ -12,13 +12,13 @@ struct RuntimeConfigurationFieldView: View {
         Section {
             if field.kind == .boolean {
                 Toggle(title, isOn: binding(\.boolValues, default: false))
-                    .toggleStyle(.switch).tint(.green)
+                    .toggleStyle(.switch).accentColor(.green)
             } else {
                 editor
             }
             if let error = model.errors[field.id] {
                 Label(error, appSymbol: "exclamationmark.circle")
-                    .font(.footnote).foregroundStyle(.red).accessibilityIdentifier("configuration.error.\(field.id)")
+                    .font(.footnote).foregroundColor(.red).accessibilityIdentifier("configuration.error.\(field.id)")
             }
         } header: {
             if field.kind != .boolean { Text(title + (field.isRequired ? " *" : "")) }
@@ -43,7 +43,7 @@ struct RuntimeConfigurationFieldView: View {
                 .keyboardType(.numbersAndPunctuation).runtimeConfigInput()
         case let .choice(options):
             Picker(title, selection: binding(\.choiceValues, default: .null)) {
-                Text(String(localized: "Choose an option")).tag(JSONValue.null)
+                Text(L("Choose an option")).tag(JSONValue.null)
                 ForEach(options) { Text($0.title).tag($0.value) }
             }.pickerStyle(.menu).runtimeConfigInput()
         case .modelGateway:
@@ -54,7 +54,7 @@ struct RuntimeConfigurationFieldView: View {
             models
         case .json:
             TextEditor(text: binding(\.textValues, default: ""))
-                .font(.footnote.monospaced()).frame(minHeight: 140)
+                .font(Font.system(.footnote, design: .monospaced)).frame(minHeight: 140)
                 .runtimeConfigInput().accessibilityLabel(title)
         case .boolean: EmptyView()
         }
@@ -66,50 +66,50 @@ struct RuntimeConfigurationFieldView: View {
             let urlSchema = properties["baseUrl"]?.configObject ?? [:]
             let keySchema = properties["apiKey"]?.configObject ?? [:]
             VStack(alignment: .leading, spacing: 8) {
-                Text(RuntimeConfigCopy.schemaText(urlSchema, key: "labelKey", fallback: String(localized: "Gateway URL"), locale: locale))
+                Text(RuntimeConfigCopy.schemaText(urlSchema, key: "labelKey", fallback: L("Gateway URL"), locale: locale))
                     .font(.subheadline.weight(.medium))
                 TextField("https://", text: binding(\.gateways, default: .init()).baseURL)
-                    .keyboardType(.URL).runtimeConfigInput().accessibilityLabel(String(localized: "Gateway URL"))
+                    .keyboardType(.URL).runtimeConfigInput().accessibilityLabel(L("Gateway URL"))
                 Text(RuntimeConfigCopy.schemaText(urlSchema, key: "descriptionKey", fallback: urlSchema["description"]?.stringValue ?? "", locale: locale))
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundColor(.secondary)
             }
             VStack(alignment: .leading, spacing: 8) {
-                Text(RuntimeConfigCopy.schemaText(keySchema, key: "labelKey", fallback: String(localized: "Gateway API key"), locale: locale))
+                Text(RuntimeConfigCopy.schemaText(keySchema, key: "labelKey", fallback: L("Gateway API key"), locale: locale))
                     .font(.subheadline.weight(.medium))
-                RuntimeSecretInput(title: RuntimeConfigCopy.lookup(String(localized: "Gateway API key"), locale: locale),
+                RuntimeSecretInput(title: RuntimeConfigCopy.lookup(L("Gateway API key"), locale: locale),
                     text: binding(\.gateways, default: .init()).apiKey,
-                    showTitle: String(localized: "dashboard.device.showModelGatewayApiKey"),
-                    hideTitle: String(localized: "dashboard.device.hideModelGatewayApiKey"))
+                    showTitle: L("dashboard.device.showModelGatewayApiKey"),
+                    hideTitle: L("dashboard.device.hideModelGatewayApiKey"))
                 Text(RuntimeConfigCopy.schemaText(keySchema, key: "descriptionKey", fallback: keySchema["description"]?.stringValue ?? "", locale: locale))
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundColor(.secondary)
             }
         }.padding(.vertical, 8)
     }
 
     @ViewBuilder private var environment: some View {
         if model.environments[field.id, default: []].isEmpty {
-            Text(String(localized: "No environment overrides.")).font(.subheadline).foregroundStyle(.secondary)
+            Text(L("No environment overrides.")).font(.subheadline).foregroundColor(.secondary)
         }
         ForEach(model.environments[field.id] ?? []) { row in
             RuntimeEnvironmentRowEditor(row: row) {
                 model.removeEnvironmentRow(row.id, fieldID: field.id)
             }
         }
-        AppGlassButton(String(localized: "Add variable"), systemImage: "plus", maxWidth: nil) {
+        AppGlassButton(L("Add variable"), systemImage: "plus", maxWidth: nil) {
             model.environments[field.id, default: []].append(.init())
         }
     }
 
     @ViewBuilder private var models: some View {
         if model.customModels[field.id, default: []].isEmpty {
-            Text(String(localized: "No custom models.")).font(.subheadline).foregroundStyle(.secondary)
+            Text(L("No custom models.")).font(.subheadline).foregroundColor(.secondary)
         }
         ForEach(model.customModels[field.id] ?? []) { row in
             RuntimeCustomModelRowEditor(row: row) {
                 model.removeCustomModel(row.id, fieldID: field.id)
             }
         }
-        AppGlassButton(String(localized: "Add custom model"), systemImage: "plus", maxWidth: nil) {
+        AppGlassButton(L("Add custom model"), systemImage: "plus", maxWidth: nil) {
             model.customModels[field.id, default: []].append(.init())
         }
     }
@@ -124,8 +124,8 @@ struct RuntimeConfigurationFieldView: View {
 struct RuntimeSecretInput: View {
     let title: String
     @Binding var text: String
-    var showTitle = String(localized: "Show secret")
-    var hideTitle = String(localized: "Hide secret")
+    var showTitle = L("Show secret")
+    var hideTitle = L("Hide secret")
     @State private var isVisible = false
     var body: some View {
         HStack(spacing: 8) {
@@ -142,7 +142,7 @@ struct RuntimeSecretInput: View {
 
 extension View {
     func runtimeConfigInput() -> some View {
-        self.textInputAutocapitalization(.never).autocorrectionDisabled()
+        self.compatTextInputAutocapitalization(.never).compatAutocorrectionDisabled()
             .textFieldStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -150,7 +150,7 @@ extension View {
 
 enum RuntimeConfigCopy {
     static func lookup(_ key: String, locale: Locale) -> String {
-        String(localized: String.LocalizationValue(key), locale: locale)
+        L(String.LocalizationValue(key), locale: locale)
     }
     static func schemaText(_ schema: [String: JSONValue], key: String, fallback: String, locale: Locale) -> String {
         if let key = schema["metadata"]?.configObject?["i18n"]?.configObject?[key]?.stringValue {

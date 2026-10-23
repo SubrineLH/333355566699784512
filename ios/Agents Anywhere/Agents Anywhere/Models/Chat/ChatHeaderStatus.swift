@@ -7,19 +7,19 @@ enum ChatHeaderStatus: Equatable {
 
     var title: String {
         switch self {
-        case .networkOffline: String(localized: "网络已断开")
-        case .deviceOffline: String(localized: "设备离线")
-        case .syncing: String(localized: "正在同步会话状态…")
-        case .working: String(localized: "正在处理任务")
-        case .waitingForResponse: String(localized: "等待回应")
-        case .stopping: String(localized: "正在停止…")
+        case .networkOffline: L("网络已断开")
+        case .deviceOffline: L("设备离线")
+        case .syncing: L("正在同步会话状态…")
+        case .working: L("正在处理任务")
+        case .waitingForResponse: L("等待回应")
+        case .stopping: L("正在停止…")
         case .information(let message): message
         }
     }
     var detail: String {
         switch self {
-        case .networkOffline: String(localized: "网络已断开，草稿和已加载的消息已保留")
-        case .deviceOffline: String(localized: "设备离线，等待重新连接")
+        case .networkOffline: L("网络已断开，草稿和已加载的消息已保留")
+        case .deviceOffline: L("设备离线，等待重新连接")
         default: title
         }
     }

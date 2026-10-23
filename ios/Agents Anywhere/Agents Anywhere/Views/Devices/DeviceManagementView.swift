@@ -20,10 +20,10 @@ struct DeviceManagementView: View {
     let onSessionsUpdated: ([V2SessionMeta]) -> Void
     let onSetSessionsArchived: ([V2SessionID], Bool) async -> Bool
 
-    @State private var model = DeviceManagementModel()
+    @StateObject private var model = DeviceManagementModel()
     @AppStorage(ProjectSidebarPreferences.sessionListKey) private var showsSessionList = false
     @State private var showsToolbarTitle = false
-    @State private var toasts = ChatToastStore()
+    @StateObject private var toasts = ChatToastStore()
     @State private var isRenaming = false
     @State private var proposedName = ""
     @State private var confirmsRotation = false
@@ -83,32 +83,35 @@ struct DeviceManagementView: View {
                 }
                 .padding(.top, 8).padding(.bottom, 24)
                 .modifier(ChatPageContentColumn())
-                .background { ChatPageScrollEdge() }
+                .compatBackground { ChatPageScrollEdge() }
+                .compatOnGeometryChange(of: { $0.frame(in: .named("device.list")).minY }) { top in
+                    let scrolled = top < -56
+                    guard scrolled != showsToolbarTitle else { return }
+                    withAnimation(.easeOut(duration: 0.15)) { showsToolbarTitle = scrolled }
+                }
             }
-            .onScrollGeometryChange(for: Bool.self) { $0.contentOffset.y + $0.contentInsets.top > 56 } action: { _, scrolled in
-                withAnimation(.easeOut(duration: 0.15)) { showsToolbarTitle = scrolled }
-            }
+            .coordinateSpace(name: "device.list")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .scrollIndicators(.hidden).scrollEdgeEffectStyle(.soft, for: .all)
-        .refreshable { await dashboard.refresh(); await agents.refresh() }
+        .compatScrollIndicators(.hidden).compatScrollEdgeEffectStyle(.soft, for: .all)
+        .compatRefreshable { await dashboard.refresh(); await agents.refresh() }
         .modifier(ChatPageToolbar(title: showsToolbarTitle ? connector.name : "",
             subtitle: showsToolbarTitle ? connectionDescription : nil, onMenu: onMenu))
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    Button(String(localized: "New session"), systemImage: "square.and.pencil") { onNewSession(nil) }
-                    Button(String(localized: "Copy device ID"), systemImage: "doc.on.doc") { UIPasteboard.general.string = connector.id }
+                    Button(L("New session"), systemImage: "square.and.pencil") { onNewSession(nil) }
+                    Button(L("Copy device ID"), systemImage: "doc.on.doc") { UIPasteboard.general.string = connector.id }
                     Divider()
-                    Button(String(localized: "Rename device"), systemImage: "pencil") { proposedName = connector.name; isRenaming = true }.disabled(!canManage)
-                    Button(String(localized: "Rotate credential"), systemImage: "key") { confirmsRotation = true }.disabled(!canManage)
-                    Button(String(localized: "Delete device"), systemImage: "trash", role: .destructive) { confirmsDeletion = true }.disabled(!canManage)
+                    Button(L("Rename device"), systemImage: "pencil") { proposedName = connector.name; isRenaming = true }.disabled(!canManage)
+                    Button(L("Rotate credential"), systemImage: "key") { confirmsRotation = true }.disabled(!canManage)
+                    Button(L("Delete device"), systemImage: "trash", role: .destructive) { confirmsDeletion = true }.disabled(!canManage)
                 } label: {
                     AppSymbol("ellipsis")
-                }.accessibilityLabel(String(localized: "Device actions"))
+                }.accessibilityLabel(L("Device actions"))
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .compatSafeAreaInset(edge: .bottom, spacing: 0) {
             if model.isSelectingSessions {
                 DeviceSessionSelectionDock(count: model.selectedSessionIds.count,
                     restores: model.sessionFilter == .archived, isWorking: busy, disabled: !canManage,
@@ -116,13 +119,13 @@ struct DeviceManagementView: View {
                     onSubmit: { performArchive(Array(model.selectedSessionIds), archived: model.sessionFilter != .archived) })
             }
         }
-        .overlay(alignment: .top) {
+        .compatOverlay(alignment: .top) {
             ChatErrorToasts(store: toasts, isRetrying: dashboard.isLoading, onRetry: { _ in await dashboard.refresh() })
                 .padding(.top, 8)
         }
-        .onChange(of: allSessions, initial: true) { _, values in model.updateSessions(connectorId: connector.id, allSessions: values) }
-        .onChange(of: model.errorMessage, initial: true) { _, error in report(error, source: "device") }
-        .onChange(of: dashboard.error, initial: true) { _, error in report(error, source: "sync") }
+        .compatOnChange(of: allSessions, initial: true) { _, values in model.updateSessions(connectorId: connector.id, allSessions: values) }
+        .compatOnChange(of: model.errorMessage, initial: true) { _, error in report(error, source: "device") }
+        .compatOnChange(of: dashboard.error, initial: true) { _, error in report(error, source: "sync") }
         .sheet(isPresented: $createsProject) { ProjectEditorSheet(repository: dashboard, connectorID: connector.id) }
         .sheet(item: $editingProject) { ProjectEditorSheet(repository: dashboard, project: $0) }
         .sheet(item: $selectedWorkspace) {
@@ -139,28 +142,28 @@ struct DeviceManagementView: View {
                 })
         }
         .sheet(item: $credential) { ConnectorCredentialSheet(connector: $0.connector, connectorToken: $0.connectorToken, serverURL: serverURL) }
-        .alert(String(localized: "Rename device"), isPresented: $isRenaming) {
-            TextField(String(localized: "Device name"), text: $proposedName)
-            Button(String(localized: "Cancel"), role: .cancel) {}
-            Button(String(localized: "Save")) { Task { await renameDevice() } }
+        .compatAlert(L("Rename device"), isPresented: $isRenaming, dismissOnTap: false) {
+            TextField(L("Device name"), text: $proposedName)
+            Button(L("Cancel"), role: .cancel) {}
+            Button(L("Save")) { Task { await renameDevice() } }
                 .disabled(proposedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !canManage)
         }
-        .alert(String(localized: "Rotate connector credential?"), isPresented: $confirmsRotation) {
-            Button(String(localized: "Cancel"), role: .cancel) {}
-            Button(String(localized: "Rotate credential"), role: .destructive) { Task { await rotateCredential() } }
-        } message: { Text(String(localized: "The current desktop Connector will disconnect. Replace its saved token with the new credential before reconnecting.")) }
-        .alert(String(localized: "Delete this device?"), isPresented: $confirmsDeletion) {
-            Button(String(localized: "Cancel"), role: .cancel) {}
-            Button(String(localized: "Delete device"), role: .destructive) { Task { await deleteDevice() } }
-        } message: { Text(String(localized: "This will permanently remove \(connector.name) and all its associated data. This action cannot be undone.")) }
-        .alert(model.sessionFilter == .archived ? String(localized: "Restore these sessions?") : String(localized: "Archive these sessions?"), isPresented: $confirmsArchiveAll) {
-            Button(String(localized: "Cancel"), role: .cancel) {}
-            Button(model.sessionFilter == .archived ? String(localized: "Restore") : String(localized: "Archive")) { archiveAll() }
-        } message: { Text(String(localized: "This applies to all sessions in the selected scope, including those not loaded yet.")) }
-        .alert(projectActionIsDeletion ? String(localized: "Delete project?") : String(localized: "Archive project sessions?"), isPresented: Binding(
+        .compatAlert(L("Rotate connector credential?"), isPresented: $confirmsRotation) {
+            Button(L("Cancel"), role: .cancel) {}
+            Button(L("Rotate credential"), role: .destructive) { Task { await rotateCredential() } }
+        } message: { Text(L("The current desktop Connector will disconnect. Replace its saved token with the new credential before reconnecting.")) }
+        .compatAlert(L("Delete this device?"), isPresented: $confirmsDeletion) {
+            Button(L("Cancel"), role: .cancel) {}
+            Button(L("Delete device"), role: .destructive) { Task { await deleteDevice() } }
+        } message: { Text(L("This will permanently remove \(connector.name) and all its associated data. This action cannot be undone.")) }
+        .compatAlert(model.sessionFilter == .archived ? L("Restore these sessions?") : L("Archive these sessions?"), isPresented: $confirmsArchiveAll) {
+            Button(L("Cancel"), role: .cancel) {}
+            Button(model.sessionFilter == .archived ? L("Restore") : L("Archive")) { archiveAll() }
+        } message: { Text(L("This applies to all sessions in the selected scope, including those not loaded yet.")) }
+        .compatAlert(projectActionIsDeletion ? L("Delete project?") : L("Archive project sessions?"), isPresented: Binding(
             get: { pendingProject != nil }, set: { if !$0 { pendingProject = nil } })) {
-            Button(String(localized: "Cancel"), role: .cancel) { pendingProject = nil }
-            Button(projectActionIsDeletion ? String(localized: "Delete") : String(localized: "Archive"), role: .destructive) {
+            Button(L("Cancel"), role: .cancel) { pendingProject = nil }
+            Button(projectActionIsDeletion ? L("Delete") : L("Archive"), role: .destructive) {
                 guard let project = pendingProject else { return }; pendingProject = nil
                 let deletesProject = projectActionIsDeletion
                 perform {
@@ -169,8 +172,8 @@ struct DeviceManagementView: View {
                 }
             }
         } message: {
-            Text(projectActionIsDeletion ? String(localized: "Only empty projects can be deleted. Files on the device are kept.") :
-                String(localized: "Archive all sessions in \(pendingProject?.name ?? "")? The project will remain available for future sessions."))
+            Text(projectActionIsDeletion ? L("Only empty projects can be deleted. Files on the device are kept.") :
+                L("Archive all sessions in \(pendingProject?.name ?? "")? The project will remain available for future sessions."))
         }
     }
 
@@ -181,20 +184,20 @@ struct DeviceManagementView: View {
                 .accessibilityAddTraits(.isHeader)
             HStack(spacing: 6) {
                 if connector.status == .online {
-                    AppSymbol("checkmark.circle.fill", size: 15).foregroundStyle(.green)
+                    AppSymbol("checkmark.circle.fill", size: 15).foregroundColor(.green)
                 } else {
                     Circle().fill(.secondary.opacity(0.4)).frame(width: 9, height: 9).frame(width: 15)
                 }
                 Text(connectionDescription)
             }
-            .font(.subheadline).foregroundStyle(.secondary)
+            .font(.subheadline).foregroundColor(.secondary)
         }
         .accessibilityElement(children: .combine)
     }
 
     private var connectionDescription: String {
-        let status = !dashboard.canWrite ? String(localized: "Showing cached content") :
-            connector.status == .online ? String(localized: "Online") : String(localized: "Device offline")
+        let status = !dashboard.canWrite ? L("Showing cached content") :
+            connector.status == .online ? L("Online") : L("Device offline")
         return [connector.deviceOs, status].compactMap { $0 }.joined(separator: " · ")
     }
     private func report(_ message: String?, source: String) {

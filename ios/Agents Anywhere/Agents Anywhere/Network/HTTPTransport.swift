@@ -13,7 +13,7 @@ nonisolated struct URLSessionHTTPTransport: HTTPTransport {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let retryPolicy: HTTPReadRetryPolicy
-    private let sleep: (Duration) async throws -> Void
+    private let sleep: (TimeInterval) async throws -> Void
 
     init(
         serverURL: URL,
@@ -22,7 +22,7 @@ nonisolated struct URLSessionHTTPTransport: HTTPTransport {
         encoder: JSONEncoder = JSONEncoder(),
         decoder: JSONDecoder = JSONDecoder(),
         retryPolicy: HTTPReadRetryPolicy = HTTPReadRetryPolicy(),
-        sleep: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping (TimeInterval) async throws -> Void = { try await compatSleep(seconds: $0) }
     ) {
         self.serverURL = serverURL.normalizedV2ServerURL()
         self.urlSession = urlSession
@@ -59,7 +59,7 @@ nonisolated struct URLSessionHTTPTransport: HTTPTransport {
                 if let retryAfter, retryAfter > 30 { throw error }
                 let delay = max(0.5 * pow(2, Double(attempt)), retryAfter ?? 0)
                 attempt += 1
-                try await sleep(.seconds(delay))
+                try await sleep(delay)
             }
         }
     }
@@ -231,15 +231,15 @@ nonisolated extension DecodingError {
     var v2Description: String {
         switch self {
         case let .keyNotFound(key, context):
-            return String(localized: "The server response is missing '\(v2Path(context.codingPath + [key]))'.")
+            return L("The server response is missing '\(v2Path(context.codingPath + [key]))'.")
         case let .typeMismatch(type, context):
-            return String(localized: "The server response has an invalid type at '\(v2Path(context.codingPath))' for \(String(describing: type)).")
+            return L("The server response has an invalid type at '\(v2Path(context.codingPath))' for \(String(describing: type)).")
         case let .valueNotFound(type, context):
-            return String(localized: "The server response is missing a value at '\(v2Path(context.codingPath))' for \(String(describing: type)).")
+            return L("The server response is missing a value at '\(v2Path(context.codingPath))' for \(String(describing: type)).")
         case let .dataCorrupted(context):
-            return String(localized: "The server response could not be decoded at '\(v2Path(context.codingPath))'.")
+            return L("The server response could not be decoded at '\(v2Path(context.codingPath))'.")
         @unknown default:
-            return String(localized: "The server response could not be decoded.")
+            return L("The server response could not be decoded.")
         }
     }
 

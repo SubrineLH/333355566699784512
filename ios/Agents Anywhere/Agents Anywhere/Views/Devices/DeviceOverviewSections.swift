@@ -19,8 +19,8 @@ struct DeviceSection<Actions: View, Content: View>: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Text(title)
-                    .font(.footnote.weight(.semibold)).textCase(.uppercase).tracking(0.6)
-                    .foregroundStyle(.secondary).lineLimit(1)
+                    .font(.footnote.weight(.semibold)).textCase(.uppercase).compatTracking(0.6)
+                    .foregroundColor(.secondary).lineLimit(1)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 8)
                 actions()
@@ -56,7 +56,7 @@ struct DeviceRowDivider: View {
 struct DeviceEmptyText: View {
     let text: String
     var body: some View {
-        Text(text).font(.subheadline).foregroundStyle(.secondary)
+        Text(text).font(.subheadline).foregroundColor(.secondary)
             .padding(.vertical, 14).frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -73,11 +73,11 @@ struct DevicePillButton: View {
         Button(action: action) {
             Text(title).font(.footnote.weight(.semibold)).lineLimit(1)
                 .opacity(isLoading ? 0 : 1)
-                .overlay { if isLoading { ProgressView().controlSize(.mini) } }
+                .compatOverlay { if isLoading { ProgressView().compatControlSize(.mini) } }
                 .padding(.horizontal, 12).frame(minHeight: 30)
                 .background(AppTheme.sidebarSelectionFill(colorScheme), in: .capsule)
                 .opacity(isEnabled ? 1 : 0.45)
-                .contentShape(.capsule)
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }
@@ -97,10 +97,10 @@ struct DeviceFilterTags<Value: Hashable & Identifiable>: View {
                 Button { selection = value } label: {
                     Text(title(value))
                         .font(.subheadline.weight(selected ? .semibold : .regular))
-                        .foregroundStyle(selected ? .primary : .secondary)
+                        .foregroundColor(selected ? .primary : .secondary)
                         .padding(.horizontal, 14).frame(minHeight: 34)
                         .background(selected ? AppTheme.sidebarSelectionFill(colorScheme) : .clear, in: .capsule)
-                        .contentShape(.capsule)
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
@@ -129,7 +129,7 @@ struct DeviceStatusDot: View {
 
     var body: some View {
         ZStack {
-            if isLoading { ProgressView().controlSize(.mini) }
+            if isLoading { ProgressView().compatControlSize(.mini) }
             else { Circle().fill(tone.color).frame(width: 8, height: 8) }
         }
         .frame(width: 14, height: 14)

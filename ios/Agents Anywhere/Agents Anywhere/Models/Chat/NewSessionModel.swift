@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Combine
 
 struct NewSessionPreference: Codable {
     var draftText: String? = nil
@@ -13,46 +13,46 @@ struct NewSessionPreference: Codable {
 
 /// Account-scoped draft and target selection. A target is committed only after
 /// both the device and its configured Agent instance have been chosen.
-@MainActor @Observable
-final class NewSessionModel {
+@MainActor
+final class NewSessionModel: ObservableObject {
     let draft = ComposerDraft()
     let settings = ConversationSettings()
-    private(set) var connectors: [V2Connector] = []
-    private(set) var projects: [V2Project] = []
-    private(set) var projectID: String?
-    private(set) var workspace = ""
-    private(set) var homePaths: [String: String] = [:]
-    private(set) var homeErrors: [String: String] = [:]
-    private(set) var loadingHomes: Set<String> = []
-    private(set) var hasLoadedProjects = false
-    private(set) var inventories: [String: [V2DeviceRuntime]] = [:]
-    private(set) var inventoryErrors: [String: String] = [:]
-    private(set) var loadingDevices: Set<String> = []
-    private(set) var connectorID: String
-    private(set) var runtimeID: String
-    private(set) var prepared: V2PreparedSession?
-    private(set) var isPreparing = false
-    private(set) var isCreating = false
-    private(set) var isValid = true
-    private(set) var creationUncertain = false
-    private(set) var network = V2NetworkStatus()
-    var error: String?
-    @ObservationIgnored var onStaged: ((NewSessionSubmission) async -> Void)?
-    @ObservationIgnored var onFailed: ((NewSessionSubmission) -> Void)?
-    @ObservationIgnored var onBound: ((NewSessionSubmission, V2SessionCreateResponse) -> Void)?
-    @ObservationIgnored var onProjectResolved: ((V2Project) -> Void)?
-    @ObservationIgnored private let devices: V2DeviceManagementService
-    @ObservationIgnored private let preparation: V2SessionPreparationService
-    @ObservationIgnored private let creation: V2SessionCreationService
-    @ObservationIgnored private let projectAPI: V2ProjectAPI
-    @ObservationIgnored private let files: V2WorkspaceFilesService
-    @ObservationIgnored private let defaults: UserDefaults
-    @ObservationIgnored private let preferenceKey: String
-    @ObservationIgnored private var preference: NewSessionPreference
-    @ObservationIgnored private var preparationVersion = 0
-    @ObservationIgnored private var inventoryTasks: [String: Task<[V2DeviceRuntime], Error>] = [:]
-    @ObservationIgnored private var homeTasks: [String: Task<String, Error>] = [:]
-    @ObservationIgnored private var resolvedHomes: Set<String> = []
+    @Published private(set) var connectors: [V2Connector] = []
+    @Published private(set) var projects: [V2Project] = []
+    @Published private(set) var projectID: String?
+    @Published private(set) var workspace = ""
+    @Published private(set) var homePaths: [String: String] = [:]
+    @Published private(set) var homeErrors: [String: String] = [:]
+    @Published private(set) var loadingHomes: Set<String> = []
+    @Published private(set) var hasLoadedProjects = false
+    @Published private(set) var inventories: [String: [V2DeviceRuntime]] = [:]
+    @Published private(set) var inventoryErrors: [String: String] = [:]
+    @Published private(set) var loadingDevices: Set<String> = []
+    @Published private(set) var connectorID: String
+    @Published private(set) var runtimeID: String
+    @Published private(set) var prepared: V2PreparedSession?
+    @Published private(set) var isPreparing = false
+    @Published private(set) var isCreating = false
+    @Published private(set) var isValid = true
+    @Published private(set) var creationUncertain = false
+    @Published private(set) var network = V2NetworkStatus()
+    @Published var error: String?
+    var onStaged: ((NewSessionSubmission) async -> Void)?
+    var onFailed: ((NewSessionSubmission) -> Void)?
+    var onBound: ((NewSessionSubmission, V2SessionCreateResponse) -> Void)?
+    var onProjectResolved: ((V2Project) -> Void)?
+    private let devices: V2DeviceManagementService
+    private let preparation: V2SessionPreparationService
+    private let creation: V2SessionCreationService
+    private let projectAPI: V2ProjectAPI
+    private let files: V2WorkspaceFilesService
+    private let defaults: UserDefaults
+    private let preferenceKey: String
+    private var preference: NewSessionPreference
+    private var preparationVersion = 0
+    private var inventoryTasks: [String: Task<[V2DeviceRuntime], Error>] = [:]
+    private var homeTasks: [String: Task<String, Error>] = [:]
+    private var resolvedHomes: Set<String> = []
 
     init(scope: V2ClientScope, devices: V2DeviceManagementService,
          preparation: V2SessionPreparationService, creation: V2SessionCreationService, projectAPI: V2ProjectAPI,
@@ -264,7 +264,7 @@ final class NewSessionModel {
             let value = try await preparation.prepare(connectorId: connectorID, runtimeId: runtimeID)
             guard isValid, version == preparationVersion, !Task.isCancelled else { return }
             guard value.runtime.isReadyForSession else {
-                error = value.runtime.sessionUnavailableReason ?? String(localized: "Agent 尚未就绪")
+                error = value.runtime.sessionUnavailableReason ?? L("Agent 尚未就绪")
                 return
             }
             prepared = value
@@ -313,7 +313,7 @@ final class NewSessionModel {
         var completed = false
         defer {
             if !completed, isValid {
-                let failure = V2ClientFailure(kind: .unavailable, message: error ?? String(localized: "未能完成创建，请检查设备连接和运行选项。"))
+                let failure = V2ClientFailure(kind: .unavailable, message: error ?? L("未能完成创建，请检查设备连接和运行选项。"))
                 submission.pending.update(creationUncertain ? .uncertain(failure) : .rejected(failure))
                 onFailed?(submission)
                 if draft.text.isEmpty, draft.attachments.isEmpty { draft.text = text; draft.attachments = files }
@@ -327,7 +327,7 @@ final class NewSessionModel {
         guard isValid, !Task.isCancelled, prepared != nil, connectorID == target.0, runtimeID == target.1,
               connector?.status == .online, network.availability != .offline else { return nil }
         guard settings.hasValidSelections, chosenSelections == settings.selections else {
-            error = String(localized: "可用选项已变化，请检查模型和权限后再次发送。")
+            error = L("可用选项已变化，请检查模型和权限后再次发送。")
             return nil
         }
         var didSubmit = false
@@ -336,7 +336,7 @@ final class NewSessionModel {
                   let current = self.project, current.connectorId == target.0,
                   current.workspacePath == project.workspacePath,
                   network.availability != .offline, connector?.status == .online else {
-                error = String(localized: "项目或设备状态已变化，请检查运行目标后再次发送。草稿已保留。")
+                error = L("项目或设备状态已变化，请检查运行目标后再次发送。草稿已保留。")
                 return nil
             }
             didSubmit = true
@@ -352,7 +352,7 @@ final class NewSessionModel {
             guard isValid else { return nil }
             creationUncertain = didSubmit && !V2ClientFailure.isDefiniteWriteRejection(error)
             self.error = creationUncertain
-                ? String(localized: "创建结果尚未确认。请先检查会话列表，避免重复创建。草稿已保留。\n\(error.localizedDescription)")
+                ? L("创建结果尚未确认。请先检查会话列表，避免重复创建。草稿已保留。\n\(error.localizedDescription)")
                 : error.localizedDescription
             return nil
         }
@@ -362,7 +362,7 @@ final class NewSessionModel {
         guard isValid, !isCreating else { return }
         if (!draft.text.isEmpty || !draft.attachments.isEmpty),
            draft.text != pending.content || draft.attachments.map(\.id) != pending.attachments.map(\.id) {
-            error = String(localized: "新会话中已有其他草稿，已为你保留。请先处理该草稿，再返回这条发送记录。")
+            error = L("新会话中已有其他草稿，已为你保留。请先处理该草稿，再返回这条发送记录。")
             return
         }
         focusDevice(meta.connectorId, workspace: meta.cwd)
@@ -370,7 +370,7 @@ final class NewSessionModel {
         runtimeID = meta.effectiveRuntimeId
         draft.text = pending.content; draft.attachments = pending.attachments
         if case .uncertain = pending.delivery { creationUncertain = true }
-        error = creationUncertain ? String(localized: "请先检查会话列表，确认上次创建结果后再发送。") : nil
+        error = creationUncertain ? L("请先检查会话列表，确认上次创建结果后再发送。") : nil
         saveDraft()
     }
 
@@ -399,13 +399,13 @@ final class NewSessionModel {
     func scheduleDraftSave() {
         guard isValid, draftSaveTask == nil else { return }
         draftSaveTask = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(1)) } catch { return }
+            do { try await compatSleep(seconds: 1) } catch { return }
             guard let self, !Task.isCancelled else { return }
             draftSaveTask = nil
             saveDraft()
         }
     }
-    @ObservationIgnored private var draftSaveTask: Task<Void, Never>?
+    private var draftSaveTask: Task<Void, Never>?
 
     private func persist() {
         if let data = try? JSONEncoder().encode(preference) { defaults.set(data, forKey: preferenceKey) }
@@ -423,11 +423,11 @@ struct NewSessionRefreshKey: Equatable {
 extension V2DeviceRuntime {
     var isReadyForSession: Bool { configured && active && available && status == .running }
     var sessionUnavailableReason: String? {
-        if !configured { return String(localized: "尚未配置") }
-        if !active { return String(localized: "未启用，请在设备管理中启动") }
+        if !configured { return L("尚未配置") }
+        if !active { return L("未启用，请在设备管理中启动") }
         if let reason, !reason.isEmpty { return reason }
-        if status != .running { return String(localized: "尚未就绪 · \(status.displayName)") }
-        return available ? nil : String(localized: "当前不可用")
+        if status != .running { return L("尚未就绪 · \(status.displayName)") }
+        return available ? nil : L("当前不可用")
     }
     var sessionDisplayName: String { name.isEmpty ? displayName : name }
 }

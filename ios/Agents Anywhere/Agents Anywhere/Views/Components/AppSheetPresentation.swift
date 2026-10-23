@@ -26,7 +26,7 @@ private struct AppSheetPresentation: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .presentationDetents(size == .expanded ? [.large] : [.medium, .large], selection: selection)
+            .compatPresentationDetents(size == .expanded ? [.large] : [.medium, .large], selection: selection)
             .presentationContentInteraction(.scrolls)
             .presentationDragIndicator(.visible)
     }

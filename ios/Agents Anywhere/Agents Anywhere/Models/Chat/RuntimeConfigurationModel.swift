@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Combine
 
 struct RuntimeGatewayDraft: Equatable {
     var baseURL = ""
@@ -8,19 +8,19 @@ struct RuntimeGatewayDraft: Equatable {
 
 /// The editable draft keeps row identities and incomplete text independently
 /// from the JSON sent to the runtime. Reconnects do not replace this draft.
-@MainActor @Observable
-final class RuntimeConfigurationModel {
+@MainActor
+final class RuntimeConfigurationModel: ObservableObject {
     let schema: V2RuntimeConfigSchema
-    var textValues: [String: String] = [:]
-    var boolValues: [String: Bool] = [:]
-    var choiceValues: [String: JSONValue] = [:]
-    var gateways: [String: RuntimeGatewayDraft] = [:]
-    var environments: [String: [RuntimeEnvironmentRow]] = [:]
-    var customModels: [String: [RuntimeCustomModelRow]] = [:]
-    private(set) var errors: [String: String] = [:]
+    @Published var textValues: [String: String] = [:]
+    @Published var boolValues: [String: Bool] = [:]
+    @Published var choiceValues: [String: JSONValue] = [:]
+    @Published var gateways: [String: RuntimeGatewayDraft] = [:]
+    @Published var environments: [String: [RuntimeEnvironmentRow]] = [:]
+    @Published var customModels: [String: [RuntimeCustomModelRow]] = [:]
+    @Published private(set) var errors: [String: String] = [:]
     private var original: [String: JSONValue]
     private var base: [String: JSONValue]
-    @ObservationIgnored private var initialDraft: DraftSnapshot?
+    private var initialDraft: DraftSnapshot?
 
     var hasChanges: Bool { snapshot != initialDraft }
     private struct DraftSnapshot: Equatable {
@@ -90,7 +90,7 @@ final class RuntimeConfigurationModel {
                 let value = (textValues[field.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 if value.isEmpty { result[field.id] = nil }
                 else if let number = Double(value), number.isFinite { result[field.id] = .number(number) }
-                else { errors[field.id] = String(localized: "Enter a valid number.") }
+                else { errors[field.id] = L("Enter a valid number.") }
             case .modelGateway:
                 let draft = gateways[field.id] ?? .init()
                 if draft.baseURL.isEmpty && draft.apiKey.isEmpty { result[field.id] = nil }
@@ -100,7 +100,7 @@ final class RuntimeConfigurationModel {
                 for row in environments[field.id] ?? [] {
                     let key = row.key.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !key.isEmpty else { continue }
-                    if values[key] != nil { errors[field.id] = String(localized: "Variable names must be unique.") }
+                    if values[key] != nil { errors[field.id] = L("Variable names must be unique.") }
                     values[key] = row.removesInherited ? .null : .string(row.value)
                 }
                 result[field.id] = .object(values)
@@ -114,11 +114,11 @@ final class RuntimeConfigurationModel {
                         let id = effort.effortID.trimmingCharacters(in: .whitespacesAndNewlines)
                         let title = effort.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
                         if id.isEmpty && title.isEmpty { return nil }
-                        if !effortIDs.insert(id).inserted { errors[field.id] = String(localized: "Reasoning effort IDs must be unique within a model.") }
+                        if !effortIDs.insert(id).inserted { errors[field.id] = L("Reasoning effort IDs must be unique within a model.") }
                         return .object(["effortId": .string(id), "displayName": .string(title)])
                     }
                     if modelID.isEmpty && name.isEmpty && efforts.isEmpty { return nil }
-                    if !seen.insert(modelID).inserted { errors[field.id] = String(localized: "Model IDs must be unique.") }
+                    if !seen.insert(modelID).inserted { errors[field.id] = L("Model IDs must be unique.") }
                     var value: [String: JSONValue] = ["modelId": .string(modelID), "displayName": .string(name)]
                     if !efforts.isEmpty { value["efforts"] = .array(efforts) }
                     return .object(value)
@@ -129,12 +129,12 @@ final class RuntimeConfigurationModel {
                 if text.isEmpty { result[field.id] = nil }
                 else if let data = text.data(using: .utf8), let value = try? JSONDecoder().decode(JSONValue.self, from: data) {
                     result[field.id] = value
-                } else { errors[field.id] = String(localized: "Enter valid JSON.") }
+                } else { errors[field.id] = L("Enter valid JSON.") }
             }
             if errors[field.id] == nil {
                 if let value = result[field.id] {
                     errors[field.id] = RuntimeConfigValidation.error(value, schema: field.schema)
-                } else if field.isRequired { errors[field.id] = String(localized: "This field is required.") }
+                } else if field.isRequired { errors[field.id] = L("This field is required.") }
             }
         }
         guard errors.isEmpty else { throw RuntimeConfigurationValidationError() }
@@ -175,7 +175,7 @@ final class RuntimeConfigurationModel {
     }
 }
 struct RuntimeConfigurationValidationError: LocalizedError {
-    var errorDescription: String? { String(localized: "Review the highlighted configuration fields.") }
+    var errorDescription: String? { L("Review the highlighted configuration fields.") }
 }
 
 enum RuntimeConfigValidation {
@@ -183,36 +183,36 @@ enum RuntimeConfigValidation {
         for combinator in ["anyOf", "oneOf"] {
             if let alternatives = schema[combinator]?.configArray {
                 let matches = alternatives.filter { error(value, schema: $0.configObject ?? [:]) == nil }.count
-                if matches == 0 || (combinator == "oneOf" && matches != 1) { return String(localized: "The value has an unsupported type or format.") }
+                if matches == 0 || (combinator == "oneOf" && matches != 1) { return L("The value has an unsupported type or format.") }
             }
         }
         let types = schema["type"]?.configArray?.compactMap(\.stringValue) ?? schema["type"]?.stringValue.map { [$0] } ?? []
         if !types.isEmpty && !types.contains(where: { matches(value, type: $0) }) {
-            return String(localized: "The value has an unsupported type or format.")
+            return L("The value has an unsupported type or format.")
         }
-        if let options = schema["enum"]?.configArray, !options.contains(value) { return String(localized: "Choose one of the available options.") }
+        if let options = schema["enum"]?.configArray, !options.contains(value) { return L("Choose one of the available options.") }
         switch value {
         case let .string(text):
             let count = Double(text.unicodeScalars.count)
-            if let min = schema["minLength"]?.configNumber, count < min { return String(localized: "This field is required.") }
-            if let max = schema["maxLength"]?.configNumber, count > max { return String(localized: "The value is too long.") }
+            if let min = schema["minLength"]?.configNumber, count < min { return L("This field is required.") }
+            if let max = schema["maxLength"]?.configNumber, count > max { return L("The value is too long.") }
             if let pattern = schema["pattern"]?.stringValue, text.range(of: pattern, options: .regularExpression) == nil {
-                return String(localized: "Enter a value in the required format.")
+                return L("Enter a value in the required format.")
             }
         case let .number(number):
             if !number.isFinite || schema["minimum"]?.configNumber.map({ number < $0 }) == true ||
-                schema["maximum"]?.configNumber.map({ number > $0 }) == true { return String(localized: "The number is outside the allowed range.") }
+                schema["maximum"]?.configNumber.map({ number > $0 }) == true { return L("The number is outside the allowed range.") }
         case let .array(items):
             if schema["minItems"]?.configNumber.map({ Double(items.count) < $0 }) == true ||
-                schema["maxItems"]?.configNumber.map({ Double(items.count) > $0 }) == true { return String(localized: "The list has an invalid number of items.") }
-            if schema["uniqueItems"] == .bool(true), Set(items).count != items.count { return String(localized: "List items must be unique.") }
+                schema["maxItems"]?.configNumber.map({ Double(items.count) > $0 }) == true { return L("The list has an invalid number of items.") }
+            if schema["uniqueItems"] == .bool(true), Set(items).count != items.count { return L("List items must be unique.") }
             if let itemSchema = schema["items"]?.configObject {
                 for item in items { if let message = error(item, schema: itemSchema) { return message } }
             }
         case let .object(object):
             let properties = schema["properties"]?.configObject ?? [:]
             for key in schema["required"]?.configArray?.compactMap(\.stringValue) ?? [] where object[key] == nil {
-                return String(localized: "Complete all required fields in this group.")
+                return L("Complete all required fields in this group.")
             }
             for (key, child) in object {
                 if let propertyNames = schema["propertyNames"]?.configObject,
@@ -220,7 +220,7 @@ enum RuntimeConfigValidation {
                 if let property = properties[key]?.configObject {
                     if let issue = error(child, schema: property) { return issue }
                 } else if schema["additionalProperties"] == .bool(false) {
-                    return String(localized: "This configuration contains an unsupported field.")
+                    return L("This configuration contains an unsupported field.")
                 } else if let extra = schema["additionalProperties"]?.configObject, let issue = error(child, schema: extra) { return issue }
             }
         default: break

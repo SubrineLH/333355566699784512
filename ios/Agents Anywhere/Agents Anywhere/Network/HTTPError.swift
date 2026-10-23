@@ -21,17 +21,17 @@ nonisolated enum HTTPError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .invalidRequestURL(path):
-            return String(localized: "The request URL is invalid: \(path)")
+            return L("The request URL is invalid: \(path)")
         case .invalidResponse:
-            return String(localized: "The server returned an invalid response.")
+            return L("The server returned an invalid response.")
         case .unauthorized:
-            return String(localized: "You are not signed in.")
+            return L("You are not signed in.")
         case let .server(_, message, _):
             return message
         case let .decoding(message):
             return message
         case .streamOverflow:
-            return String(localized: "The live update buffer is full. Reconnect and recover session events.")
+            return L("The live update buffer is full. Reconnect and recover session events.")
         }
     }
 }

@@ -12,23 +12,34 @@ nonisolated enum ReplyPresentation {
     /// A published batch starts drawing after its Markdown parse and the next
     /// frame. Drawing clocks stay alive this much longer than the reveal.
     static let drawSlack: TimeInterval = 0.1
-    static let settleDelay: Duration = .seconds(revealSeconds + drawSlack)
+    /// `Duration` is iOS 16; the delay is carried as plain seconds instead.
+    static let settleDelay: TimeInterval = revealSeconds + drawSlack
 }
 
 /// Advance deadlines independently of the work done at each one, so processing
 /// time doesn't accumulate into a slower cadence. Late deadlines skip ahead.
+///
+/// `ContinuousClock` is iOS 16, so the clock is a monotonic uptime in seconds.
+/// `DispatchTime` has nanosecond resolution and is immune to wall-clock jumps,
+/// which is the property the reveal cadence depends on.
 nonisolated struct ReplyFlushSchedule {
-    let interval: Duration
-    private(set) var deadline: ContinuousClock.Instant
+    let interval: TimeInterval
+    private(set) var deadline: TimeInterval
 
-    init(start: ContinuousClock.Instant, interval: Duration) {
-        precondition(interval > .zero)
+    init(start: TimeInterval = compatUptime(), interval: TimeInterval) {
+        precondition(interval > 0)
         self.interval = interval
-        deadline = start.advanced(by: interval)
+        deadline = start + interval
     }
 
-    mutating func advance(after now: ContinuousClock.Instant) {
-        deadline = deadline.advanced(by: interval)
-        if deadline <= now { deadline = now.advanced(by: interval) }
+    mutating func advance(after now: TimeInterval = compatUptime()) {
+        deadline += interval
+        if deadline <= now { deadline = now + interval }
     }
+}
+
+/// Monotonic uptime in seconds, the stand-in for `ContinuousClock.now`.
+@inline(__always)
+func compatUptime() -> TimeInterval {
+    TimeInterval(DispatchTime.now().uptimeNanoseconds) / 1_000_000_000
 }

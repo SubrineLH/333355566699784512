@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 /// Both New Session and existing sessions use the same persistent editor and
 /// picker hosts. Only the commit action and capability facts differ.
 struct ChatComposerDock: View {
-    @Bindable var draft: ComposerDraft
+    @ObservedObject var draft: ComposerDraft
     let settings: ConversationSettings
     let maximumEditorHeight: CGFloat
     let controls: ChatControlMetrics
@@ -16,7 +16,7 @@ struct ChatComposerDock: View {
     var isStreaming = false
     var canStop = true
     var isBusy = false
-    var placeholder = String(localized: "询问 Agents")
+    var placeholder = L("询问 Agents")
     var isLoadingSettings = false
     var settingsError: String?
     var sessionChat: SessionChatModel?
@@ -31,7 +31,7 @@ struct ChatComposerDock: View {
     @State private var showsOptions = false
     @State private var pendingPicker: AttachmentPicker?
     @State private var picker: AttachmentPicker?
-    @State private var photos: [PhotosPickerItem] = []
+    @State private var photos: [CompatPhotosPickerItem] = []
     @State private var attachmentError: String?
     @State private var isSending = false
     @State private var importCount = 0
@@ -54,10 +54,10 @@ struct ChatComposerDock: View {
                 onCommands: { showsCommandMenu.toggle() },
                 onDraftChange: onDraftChange)
         }
-        .onChange(of: sessionChat?.optionsRequest) { _, _ in showsOptions = true }
+        .compatOnChange(of: sessionChat?.optionsRequest) { _, _ in showsOptions = true }
         .frame(maxWidth: ChatControlMetrics.maximumContentWidth)
         .frame(maxWidth: .infinity)
-        .background {
+        .compatBackground {
             ZStack {
                 Color.clear.photosPicker(isPresented: pickerBinding(.photos), selection: $photos,
                     maxSelectionCount: max(1, 5 - draft.attachments.count), matching: .images)
@@ -72,15 +72,15 @@ struct ChatComposerDock: View {
                 canSelectModel: canSelectModel, canSelectPermission: canSelectPermission,
                 isLoading: isLoadingSettings, loadingError: settingsError,
                 onReload: onLoadSettings, onApply: onApplySettings, applyError: applyError, sessionChat: sessionChat)
-                .task(id: "\(canSelectModel):\(canSelectPermission)") { await onLoadSettings() }
+                .compatTask(id: "\(canSelectModel):\(canSelectPermission)") { await onLoadSettings() }
         }
-        .onChange(of: photos) { _, items in importPhotos(items) }
+        .compatOnChange(of: photos) { _, items in importPhotos(items) }
         .onDisappear {
             editor.finishEditing()
             draft.isFocused = false
         }
-        .alert(String(localized: "无法添加附件"), isPresented: Binding(get: { attachmentError != nil }, set: { if !$0 { attachmentError = nil } })) {
-            Button(String(localized: "好"), role: .cancel) { attachmentError = nil }
+        .compatAlert(L("无法添加附件"), isPresented: Binding(get: { attachmentError != nil }, set: { if !$0 { attachmentError = nil } })) {
+            Button(L("好"), role: .cancel) { attachmentError = nil }
         } message: { Text(attachmentError ?? "") }
     }
 
@@ -105,16 +105,16 @@ struct ChatComposerDock: View {
 
     private func append(name: String, data: Data, mediaType: String) async {
         guard draft.isValid else { return }
-        guard draft.attachments.count < 5 else { attachmentError = String(localized: "每条消息最多添加 5 个附件。"); return }
-        guard !data.isEmpty else { attachmentError = String(localized: "文件为空。"); return }
-        guard data.count <= 25 * 1024 * 1024 else { attachmentError = String(localized: "单个附件请控制在 25 MiB 以内。"); return }
+        guard draft.attachments.count < 5 else { attachmentError = L("每条消息最多添加 5 个附件。"); return }
+        guard !data.isEmpty else { attachmentError = L("文件为空。"); return }
+        guard data.count <= 25 * 1024 * 1024 else { attachmentError = L("单个附件请控制在 25 MiB 以内。"); return }
         let preview = mediaType.hasPrefix("image/")
             ? await Task.detached(priority: .utility) { ChatImageThumbnail.make(data: data) }.value : nil
         guard draft.isValid, draft.attachments.count < 5 else { return }
         draft.attachments.append(ChatAttachment(name: name, data: data, mediaType: mediaType, previewData: preview))
     }
 
-    private func importPhotos(_ items: [PhotosPickerItem]) {
+    private func importPhotos(_ items: [CompatPhotosPickerItem]) {
         guard !items.isEmpty else { return }
         importCount += 1
         Task { @MainActor in
@@ -142,7 +142,7 @@ struct ChatComposerDock: View {
                         await append(name: file.name, data: file.data, mediaType: file.mediaType)
                     } catch { attachmentError = error.localizedDescription }
                 }
-                if urls.count > 5 { attachmentError = String(localized: "每条消息最多添加 5 个附件。") }
+                if urls.count > 5 { attachmentError = L("每条消息最多添加 5 个附件。") }
             }
         } catch { attachmentError = error.localizedDescription }
     }

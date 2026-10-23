@@ -1,29 +1,29 @@
 import SwiftUI
 
 struct PasswordSettingsView: View {
-    @Environment(AppState.self) private var appState
+    @EnvironmentObject private var appState: AppState
 
     @Binding var draft: AccountPasswordDraft
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     var body: some View {
         Form {
-            Section(String(localized: "New password")) {
-                SecureField(String(localized: "New password"), text: $draft.password)
+            Section(L("New password")) {
+                SecureField(L("New password"), text: $draft.password)
                     .textContentType(.newPassword)
             }
             Section {
-                SecureField(String(localized: "Confirm password"), text: $draft.confirmation)
+                SecureField(L("Confirm password"), text: $draft.confirmation)
                     .textContentType(.newPassword)
             } header: {
-                Text(String(localized: "Confirm password"))
+                Text(L("Confirm password"))
             } footer: {
-                Text(String(localized: "Use at least 8 characters. Changing the password does not sign out this device."))
+                Text(L("Use at least 8 characters. Changing the password does not sign out this device."))
             }
 
         }
         .textFieldStyle(.plain)
-        .navigationTitle(String(localized: "Password"))
+        .navigationTitle(L("Password"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             SheetSaveToolbar(isWorking: appState.isAccountWorking,
@@ -41,7 +41,7 @@ struct PasswordSettingsView: View {
             )
             if saved {
                 draft = AccountPasswordDraft()
-                dismiss()
+                presentationMode.wrappedValue.dismiss()
             }
         }
     }

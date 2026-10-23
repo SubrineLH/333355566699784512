@@ -1,39 +1,39 @@
 import Foundation
-import Observation
+import Combine
 
-@MainActor @Observable
-final class SessionChatModel {
+@MainActor
+final class SessionChatModel: ObservableObject {
     let session: V2SessionModel
     let timeline = SessionTimelinePresentation()
     let settings = ConversationSettings()
     let disclosures = TimelineDisclosureState()
-    var takeoverError: String?
-    private(set) var takeoverUncertain = false
+    @Published var takeoverError: String?
+    @Published private(set) var takeoverUncertain = false
     private(set) var isWorking: Bool {
         get { session.isPerformingAction }
         set { session.isPerformingAction = newValue }
     }
-    private(set) var isLoadingSettings = false
-    var error: String?
-    var settingsError: String?
-    private(set) var isOpeningPrepared = false
+    @Published private(set) var isLoadingSettings = false
+    @Published var error: String?
+    @Published var settingsError: String?
+    @Published private(set) var isOpeningPrepared = false
     var isOpeningReady: Bool { isOpeningPrepared && timeline.hasPresentedSnapshot }
-    private(set) var openingError: String?
-    private(set) var responseRevision = 0
-    private(set) var commands: [V2RuntimeCommand] = []
-    private(set) var isLoadingCommands = false
-    private(set) var commandsError: String?
-    private(set) var isRunningCommand = false
+    @Published private(set) var openingError: String?
+    @Published private(set) var responseRevision = 0
+    @Published private(set) var commands: [V2RuntimeCommand] = []
+    @Published private(set) var isLoadingCommands = false
+    @Published private(set) var commandsError: String?
+    @Published private(set) var isRunningCommand = false
     /// Success is transient; failures stay until the user dismisses them.
-    var commandSuccess: CommandFeedback?
-    var commandFailure: CommandFeedback?
+    @Published var commandSuccess: CommandFeedback?
+    @Published var commandFailure: CommandFeedback?
     /// Selector commands (model, permission, …) open the existing options sheet.
-    private(set) var optionsRequest = 0
-    @ObservationIgnored var onEditCreation: ((V2PendingMessage) -> Void)?
-    @ObservationIgnored var onDiscardCreation: (() -> Void)?
-    @ObservationIgnored let repository: V2SessionRepository
-    @ObservationIgnored private let attachments: V2AttachmentService
-    @ObservationIgnored private let files: V2WorkspaceFilesService?
+    @Published private(set) var optionsRequest = 0
+    var onEditCreation: ((V2PendingMessage) -> Void)?
+    var onDiscardCreation: (() -> Void)?
+    let repository: V2SessionRepository
+    private let attachments: V2AttachmentService
+    private let files: V2WorkspaceFilesService?
 
     init(session: V2SessionModel, repository: V2SessionRepository, attachments: V2AttachmentService, files: V2WorkspaceFilesService? = nil) {
         self.session = session; self.repository = repository; self.attachments = attachments
@@ -53,7 +53,7 @@ final class SessionChatModel {
         for name in [meta?.runtimeName, meta?.runtimeTypeDisplayName] {
             if let name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty { return name }
         }
-        return String(localized: "Agent")
+        return L("Agent")
     }
     var isDsh: Bool {
         guard let meta = session.metadata else { return false }
@@ -61,22 +61,22 @@ final class SessionChatModel {
     }
     var sendingPlaceholder: String? {
         let submitting = session.pendingMessages.contains { $0.delivery == .sending || $0.delivery == .accepted }
-        if submitting || session.awaitingReplyID != nil { return session.isLocalCreation ? String(localized: "正在创建会话…") : String(localized: "等待 \(agentName) 回应…") }
+        if submitting || session.awaitingReplyID != nil { return session.isLocalCreation ? L("正在创建会话…") : L("等待 \(agentName) 回应…") }
         guard session.runtime.isFresh, let status = session.runtime.state?.status else { return nil }
         switch status {
-        case .waiting, .pending: return String(localized: "等待 \(agentName) 回应…")
-        case .running: return String(localized: "\(agentName) 正在处理任务…")
+        case .waiting, .pending: return L("等待 \(agentName) 回应…")
+        case .running: return L("\(agentName) 正在处理任务…")
         default: return nil
         }
     }
     var responseUnavailableReason: String? {
-        if !session.isValid { return String(localized: "会话已关闭。") }
-        if session.network.availability == .offline || session.connection == .offline { return String(localized: "网络已断开，已填写的内容会保留。") }
-        if session.metadata?.connectorStatus == .offline { return String(localized: "设备已离线，已填写的内容会保留。") }
+        if !session.isValid { return L("会话已关闭。") }
+        if session.network.availability == .offline || session.connection == .offline { return L("网络已断开，已填写的内容会保留。") }
+        if session.metadata?.connectorStatus == .offline { return L("设备已离线，已填写的内容会保留。") }
         if session.runtime.isFresh { return nil }
-        if session.failure?.kind == .invalidResponse { return String(localized: "会话数据暂时无法解析，请刷新状态后回应。已填写的内容会保留。") }
-        if session.failure?.kind == .authentication { return String(localized: "登录状态需要重新验证，已填写的内容会保留。") }
-        return String(localized: "正在确认 Agent 的最新状态，已填写的内容会保留。")
+        if session.failure?.kind == .invalidResponse { return L("会话数据暂时无法解析，请刷新状态后回应。已填写的内容会保留。") }
+        if session.failure?.kind == .authentication { return L("登录状态需要重新验证，已填写的内容会保留。") }
+        return L("正在确认 Agent 的最新状态，已填写的内容会保留。")
     }
     var canAttach: Bool { session.runtime.allows("runtime.attachment") }
     var canChangeTakeover: Bool {
@@ -98,10 +98,10 @@ final class SessionChatModel {
     var canUseCommands: Bool { session.runtime.allows("session.commands") && connectorOnline }
     var commandsUnavailableReason: String? {
         guard let capability = session.runtime.capabilities?.capability(id: "session.commands"), !canUseCommands else { return nil }
-        if !connectorOnline { return String(localized: "设备离线") }
-        if !capability.supported { return String(localized: "当前 Runtime 版本还不支持指令，升级后可用") }
+        if !connectorOnline { return L("设备离线") }
+        if !capability.supported { return L("当前 Runtime 版本还不支持指令，升级后可用") }
         if let reason = capability.unavailableReason, !reason.isEmpty { return reason }
-        return String(localized: "此会话暂时无法使用指令")
+        return L("此会话暂时无法使用指令")
     }
 
     func loadCommands(force: Bool = false) async {
@@ -126,17 +126,17 @@ final class SessionChatModel {
 
     func commandBlockMessage(_ command: V2RuntimeCommand, _ block: RuntimeCommandBlock) -> String {
         switch block {
-        case .busy: return String(localized: "Agent 忙碌中，暂时不能执行")
-        case .readOnly: return String(localized: "开启接管后才能执行指令")
-        case .offline: return String(localized: "设备离线")
-        case .unavailable: return String(localized: "此会话暂时无法使用指令")
+        case .busy: return L("Agent 忙碌中，暂时不能执行")
+        case .readOnly: return L("开启接管后才能执行指令")
+        case .offline: return L("设备离线")
+        case .unavailable: return L("此会话暂时无法使用指令")
         case .disabled:
             switch command.disabledReason {
-            case "session_unloaded": return String(localized: "请先打开此会话，再运行指令。")
-            case "native_commands_unavailable": return String(localized: "此 Codex 版本尚不支持所需的指令操作。")
-            case "codex_unavailable": return String(localized: "Codex 当前不可用。")
+            case "session_unloaded": return L("请先打开此会话，再运行指令。")
+            case "native_commands_unavailable": return L("此 Codex 版本尚不支持所需的指令操作。")
+            case "codex_unavailable": return L("Codex 当前不可用。")
             case let reason?: return reason
-            case nil: return String(localized: "此会话暂时无法使用指令")
+            case nil: return L("此会话暂时无法使用指令")
             }
         }
     }
@@ -176,9 +176,9 @@ final class SessionChatModel {
     func runCommand(_ command: V2RuntimeCommand, raw: String, clearing source: String? = nil) async {
         guard !isRunningCommand, session.isValid else { return }
         if let block = commandBlock(command) { fail(commandBlockMessage(command, block)); return }
-        guard session.composer.attachments.isEmpty else { fail(String(localized: "运行指令前请移除附件；草稿会保留。")); return }
+        guard session.composer.attachments.isEmpty else { fail(L("运行指令前请移除附件；草稿会保留。")); return }
         guard let intent = SlashIntent(raw), let request = command.request(for: intent) else {
-            fail(SlashIntent(raw)?.multiline == true ? String(localized: "此指令不支持多行输入。") : String(localized: "此指令不接受这些参数。"))
+            fail(SlashIntent(raw)?.multiline == true ? L("此指令不支持多行输入。") : L("此指令不接受这些参数。"))
             return
         }
         if case .selector? = command.ui { optionsRequest += 1; return }
@@ -191,18 +191,18 @@ final class SessionChatModel {
         guard session.isValid else { return }
         if outcome.ok {
             let message = outcome.message.map { $0.count > 200 ? String($0.prefix(200)) + "…" : $0 }
-            commandSuccess = CommandFeedback(title: outcome.state == .completed ? String(localized: "指令已完成。") : String(localized: "指令已接受，后台任务可能仍在进行。"), message: message)
+            commandSuccess = CommandFeedback(title: outcome.state == .completed ? L("指令已完成。") : L("指令已接受，后台任务可能仍在进行。"), message: message)
             if let source = source ?? raw as String?, !source.isEmpty, session.composer.text == source { session.composer.text = ""; repository.draftDidChange(sessionID: session.id) }
         } else if outcome.state == .unknown {
-            commandFailure = CommandFeedback(title: String(localized: "指令结果尚不确定"),
-                message: [String(localized: "结果尚不确定，请先检查会话状态再决定是否重试。"), outcome.message].compactMap { $0 }.joined(separator: "\n"))
+            commandFailure = CommandFeedback(title: L("指令结果尚不确定"),
+                message: [L("结果尚不确定，请先检查会话状态再决定是否重试。"), outcome.message].compactMap { $0 }.joined(separator: "\n"))
         } else {
-            fail(outcome.message ?? String(localized: "无法执行指令。"))
+            fail(outcome.message ?? L("无法执行指令。"))
         }
     }
 
     private func fail(_ message: String) {
-        commandFailure = CommandFeedback(title: String(localized: "无法执行指令"), message: message)
+        commandFailure = CommandFeedback(title: L("无法执行指令"), message: message)
     }
 
     func prepareOpening() async {
@@ -231,7 +231,7 @@ final class SessionChatModel {
         catch {
             guard session.isValid else { return false }
             takeoverUncertain = !V2ClientFailure.isDefiniteWriteRejection(error)
-            takeoverError = takeoverUncertain ? String(localized: "接管状态尚未确认，请先刷新状态，避免重复操作。") : error.localizedDescription
+            takeoverError = takeoverUncertain ? L("接管状态尚未确认，请先刷新状态，避免重复操作。") : error.localizedDescription
             return false
         }
     }
@@ -243,7 +243,7 @@ final class SessionChatModel {
 
     func loadSettings() async {
         guard !isLoadingSettings, session.isValid else { return }
-        guard session.runtime.isFresh else { settingsError = String(localized: "连接恢复后可更改对话选项。"); return }
+        guard session.runtime.isFresh else { settingsError = L("连接恢复后可更改对话选项。"); return }
         isLoadingSettings = true
         settingsError = nil
         defer { isLoadingSettings = false }
@@ -265,7 +265,7 @@ final class SessionChatModel {
         do {
             for (scope, value) in settings.selections where currentSelections[scope] != value {
                 guard session.runtime.allows(scope == .model ? "catalog.model" : "catalog.permission") else {
-                    throw V2ClientFailure(kind: .unavailable, message: String(localized: "This selection is currently unavailable."))
+                    throw V2ClientFailure(kind: .unavailable, message: L("This selection is currently unavailable."))
                 }
                 try await repository.setSelection(sessionId: session.id, scope: scope, selectionId: value)
             }
@@ -341,7 +341,7 @@ final class SessionChatModel {
         let preview: Data?
         if file.readsFromDevice, let path = file.devicePath, let files, let meta = session.metadata {
             guard meta.connectorStatus == .online, session.network.availability != .offline else {
-                throw V2ClientFailure(kind: .offline, message: String(localized: "设备或网络已离线"))
+                throw V2ClientFailure(kind: .offline, message: L("设备或网络已离线"))
             }
             let downloaded = try await files.download(connectorId: meta.connectorId, root: file.root ?? meta.cwd ?? ".",
                 entry: V2WorkspaceEntry(name: file.name ?? (path as NSString).lastPathComponent, path: path, type: "file", size: file.size, modifiedAt: nil))

@@ -5,7 +5,7 @@ import SwiftUI
 /// it lists every command regardless of the draft.
 struct CommandSuggestionPanel: View {
     let chat: SessionChatModel
-    @Bindable var draft: ComposerDraft
+    @ObservedObject var draft: ComposerDraft
     @Binding var forced: Bool
     @State private var dismissedFor: String?
 
@@ -28,22 +28,22 @@ struct CommandSuggestionPanel: View {
         if isVisible {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text(String(localized: "指令")).font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+                    Text(L("指令")).font(.footnote.weight(.semibold)).foregroundColor(.secondary)
                     Spacer()
                     Button { if forced { forced = false } else { dismissedFor = draft.text } } label: {
                         AppSymbol("xmark", size: 11).frame(width: 36, height: 36)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "关闭"))
+                    .accessibilityLabel(L("关闭"))
                 }
                 .padding(.leading, 16).padding(.trailing, 4)
                 content
             }
             .padding(.bottom, 8)
-            .glassEffect(.regular, in: .rect(cornerRadius: 22))
+            .compatGlassEffect(.regular, in: .rect(cornerRadius: 22))
             .padding(.horizontal, draft.isExpanded ? ChatControlMetrics.expandedHorizontalInset : ChatControlMetrics.collapsedHorizontalInset)
             .transition(.opacity)
-            .task(id: chat.canUseCommands) { await chat.loadCommands() }
+            .compatTask(id: chat.canUseCommands) { await chat.loadCommands() }
         }
     }
 
@@ -52,24 +52,24 @@ struct CommandSuggestionPanel: View {
             message(reason, symbol: "info.circle")
         } else if chat.commands.isEmpty && chat.isLoadingCommands {
             HStack(spacing: 8) {
-                ProgressView().controlSize(.small)
-                Text(String(localized: "正在读取指令…")).font(.subheadline).foregroundStyle(.secondary)
+                ProgressView().compatControlSize(.small)
+                Text(L("正在读取指令…")).font(.subheadline).foregroundColor(.secondary)
             }.padding(.horizontal, 16).padding(.vertical, 8)
         } else if chat.commands.isEmpty, chat.commandsError != nil {
             VStack(alignment: .leading, spacing: 4) {
-                message(String(localized: "无法读取指令。"), symbol: "exclamationmark.circle")
-                Button(String(localized: "重试")) { Task { await chat.loadCommands(force: true) } }
+                message(L("无法读取指令。"), symbol: "exclamationmark.circle")
+                Button(L("重试")) { Task { await chat.loadCommands(force: true) } }
                     .font(.footnote.weight(.medium)).padding(.horizontal, 16).frame(minHeight: 36)
             }
         } else if suggestions.isEmpty {
-            message(String(localized: "没有匹配的指令"), symbol: "magnifyingglass")
+            message(L("没有匹配的指令"), symbol: "magnifyingglass")
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(suggestions) { command in row(command) }
                 }
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .compatScrollBounceBehavior(.basedOnSize)
             .frame(maxHeight: 240)
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -77,8 +77,8 @@ struct CommandSuggestionPanel: View {
 
     private func message(_ text: String, symbol: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            AppSymbol(symbol, size: 14).foregroundStyle(.secondary)
-            Text(text).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            AppSymbol(symbol, size: 14).foregroundColor(.secondary)
+            Text(text).font(.subheadline).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
         .accessibilityElement(children: .combine)
@@ -92,14 +92,14 @@ struct CommandSuggestionPanel: View {
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(verbatim: "/\(command.id)").font(.body.monospaced()).foregroundStyle(.primary)
+                    Text(verbatim: "/\(command.id)").font(Font.system(.body, design: .monospaced)).foregroundColor(.primary)
                     if let hint = command.argumentHint {
-                        Text(hint).font(.footnote.monospaced()).foregroundStyle(.tertiary).lineLimit(1)
+                        Text(hint).font(Font.system(.footnote, design: .monospaced)).foregroundColor(Color(UIColor.tertiaryLabel)).lineLimit(1)
                     }
                 }
                 let detail = block.map { chat.commandBlockMessage(command, $0) } ?? command.description ?? (command.title == command.id ? nil : command.title)
                 if let detail, !detail.isEmpty {
-                    Text(detail).font(.footnote).foregroundStyle(.secondary).lineLimit(2)
+                    Text(detail).font(.footnote).foregroundColor(.secondary).lineLimit(2)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)

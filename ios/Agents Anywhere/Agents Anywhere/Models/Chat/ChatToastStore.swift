@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Combine
 
 struct ChatToast: Identifiable, Equatable {
     let id: String
@@ -10,8 +10,8 @@ struct ChatToast: Identifiable, Equatable {
 
 /// One current issue per source. Dismissing an issue does not change connection
 /// facts or enable writes, and repeated identical observations do not reopen it.
-@MainActor @Observable final class ChatToastStore {
-    private(set) var items: [ChatToast] = []
+@MainActor final class ChatToastStore: ObservableObject {
+    @Published private(set) var items: [ChatToast] = []
     private var latest: [String: V2ClientFailure] = [:]
 
     func update(source: String, failure: V2ClientFailure?, title: String? = nil, canRetry: Bool = false) {
@@ -21,10 +21,10 @@ struct ChatToast: Identifiable, Equatable {
         guard let failure, failure.kind != .cancelled else { return }
         let heading: String
         switch failure.kind {
-        case .invalidResponse: heading = String(localized: "会话数据格式不兼容")
-        case .authentication: heading = String(localized: "登录状态需要验证")
-        case .offline: heading = String(localized: "网络已断开")
-        default: heading = String(localized: "操作未完成")
+        case .invalidResponse: heading = L("会话数据格式不兼容")
+        case .authentication: heading = L("登录状态需要验证")
+        case .offline: heading = L("网络已断开")
+        default: heading = L("操作未完成")
         }
         items.append(ChatToast(id: source, title: title ?? heading, message: failure.message, canRetry: canRetry))
     }

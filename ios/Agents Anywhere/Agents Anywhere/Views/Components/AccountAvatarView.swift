@@ -24,7 +24,7 @@ struct AccountAvatarView: View {
                 AccountAvatarFallback(character: fallbackCharacter, size: size)
             }
         case let .remote(url):
-            AsyncImage(url: url) { phase in
+            CompatAsyncImage(url: url) { phase in
                 if case let .success(image) = phase {
                     image
                         .resizable()
@@ -51,7 +51,7 @@ private struct AccountAvatarFallback: View {
     var body: some View {
         Text(character)
             .font(.system(size: max(size * 0.38, 14), weight: .semibold, design: .rounded))
-            .foregroundStyle(.white)
+            .foregroundColor(.white)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(red: 0.12, green: 0.66, blue: 0.38))
     }

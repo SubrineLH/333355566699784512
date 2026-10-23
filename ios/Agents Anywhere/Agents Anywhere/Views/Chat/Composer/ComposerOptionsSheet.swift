@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ComposerOptionsSheet: View {
-    @Bindable var settings: ConversationSettings
+    @ObservedObject var settings: ConversationSettings
     let onPhotos: () -> Void
     let onFiles: () -> Void
     var canAttach = true
@@ -18,96 +18,95 @@ struct ComposerOptionsSheet: View {
     @State private var showsApplyError = false
     @State private var path: [Page] = []
     @State private var expandedModelID: String?
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     private enum Page: Hashable { case models, permissions }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        CompatNavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 22) {
                     HStack(spacing: 12) {
-                        attachmentTile(String(localized: "照片"), icon: "photo.on.rectangle", action: onPhotos)
-                        attachmentTile(String(localized: "文件"), icon: "doc", action: onFiles)
+                        attachmentTile(L("照片"), icon: "photo.on.rectangle", action: onPhotos)
+                        attachmentTile(L("文件"), icon: "doc", action: onFiles)
                     }
                     .disabled(!canAttach)
                     .opacity(canAttach ? 1 : 0.5)
                     if !canAttach {
-                        Text(String(localized: "当前运行状态不支持添加附件")).font(.footnote).foregroundStyle(.secondary)
+                        Text(L("当前运行状态不支持添加附件")).font(.footnote).foregroundColor(.secondary)
                     }
-                    if isLoading { ProgressView(String(localized: "加载对话选项…")) }
+                    if isLoading { ProgressView(L("加载对话选项…")) }
                     if let loadingError {
-                        Text(loadingError).font(.footnote).foregroundStyle(.secondary)
-                        Button(String(localized: "重新加载")) { Task { await onReload() } }
+                        Text(loadingError).font(.footnote).foregroundColor(.secondary)
+                        Button(L("重新加载")) { Task { await onReload() } }
                     }
                     VStack(spacing: 0) {
                         NavigationLink(value: Page.models) {
-                            optionRow(String(localized: "dashboard.new.modelAndReasoning"), icon: "sparkles", value: settings.modelLabel)
+                            optionRow(L("dashboard.new.modelAndReasoning"), icon: "sparkles", value: settings.modelLabel)
                         }
                         .disabled(isLoading || !canSelectModel || settings.catalog.models.isEmpty)
                         Divider().padding(.leading, 52)
                         NavigationLink(value: Page.permissions) {
-                            optionRow(String(localized: "权限"), icon: "checkmark.shield", value: settings.permission?.title ?? String(localized: "默认"))
+                            optionRow(L("权限"), icon: "checkmark.shield", value: settings.permission?.title ?? L("默认"))
                         }
                         .disabled(isLoading || !canSelectPermission || settings.catalog.permissions.isEmpty)
                     }
-                    .background { ComposerOptionSurface() }
+                    .compatBackground { ComposerOptionSurface() }
                     if let chat = sessionChat, let meta = chat.session.metadata {
                         VStack(alignment: .leading, spacing: 10) {
                             Toggle(isOn: Binding(get: { meta.takeover }, set: { pendingTakeover = $0 })) {
-                                Label(String(localized: "接管会话"), appSymbol: "hand.raised")
+                                Label(L("接管会话"), appSymbol: "hand.raised")
                             }
-                            .toggleStyle(.switch).tint(nil).accentColor(nil)
+                            .toggleStyle(.switch).accentColor(nil).accentColor(nil)
                             .disabled(!chat.canChangeTakeover)
-                            Text(meta.takeover ? String(localized: "已开启，可从 Agents Anywhere 继续操作。") : String(localized: "只读模式，开启接管后可以继续发送消息。"))
-                                .font(.footnote).foregroundStyle(.secondary)
+                            Text(meta.takeover ? L("已开启，可从 Agents Anywhere 继续操作。") : L("只读模式，开启接管后可以继续发送消息。"))
+                                .font(.footnote).foregroundColor(.secondary)
                             if let error = chat.takeoverError {
-                                Text(error).font(.footnote).foregroundStyle(.secondary)
+                                Text(error).font(.footnote).foregroundColor(.secondary)
                             }
                             if chat.takeoverUncertain || !chat.session.runtime.isFresh {
-                                Button(String(localized: "刷新接管状态")) { Task { await chat.refreshTakeover() } }
+                                Button(L("刷新接管状态")) { Task { await chat.refreshTakeover() } }
                                     .font(.footnote).disabled(chat.isWorking || chat.session.network.availability == .offline)
                             }
-                        }.padding(16).background { ComposerOptionSurface() }
+                        }.padding(16).compatBackground { ComposerOptionSurface() }
                     }
                 }
                 .padding(20)
             }
             .buttonStyle(.plain)
-            .navigationTitle(String(localized: "对话选项"))
+            .navigationTitle(L("对话选项"))
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: Page.self) { page in
-                switch page {
-                case .models: models
-                case .permissions: permissions
-                }
-            }
             .toolbar {
-                SheetCloseToolbar(disabled: isApplying) { dismiss() }
+                SheetCloseToolbar(disabled: isApplying) { presentationMode.wrappedValue.dismiss() }
+            }
+        } destination: { page in
+            switch page {
+            case .models: models
+            case .permissions: permissions
             }
         }
         .appSheetPresentation(.compact)
         .disabled(isApplying)
-        .interactiveDismissDisabled(isApplying)
+        .compatInteractiveDismissDisabled(isApplying)
         .modifier(SessionTakeoverConfirmation(pending: $pendingTakeover, isDsh: sessionChat?.isDsh ?? false) { enabled in
             if let chat = sessionChat { _ = await chat.setTakeover(enabled) }
         })
-        .alert(String(localized: "无法更改设置"), isPresented: $showsApplyError) {
-            Button(String(localized: "好"), role: .cancel) {}
-        } message: { Text(applyError() ?? String(localized: "当前设置未保存，请稍后重试。")) }
+        .compatAlert(L("无法更改设置"), isPresented: $showsApplyError) {
+            Button(L("好"), role: .cancel) {}
+        } message: { Text(applyError() ?? L("当前设置未保存，请稍后重试。")) }
     }
 
     private func attachmentTile(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 12) {
-                AppSymbol(icon, size: 27).foregroundStyle(.primary)
-                Text(title).font(.subheadline.weight(.medium)).foregroundStyle(.primary)
+                AppSymbol(icon, size: 27).foregroundColor(.primary)
+                Text(title).font(.subheadline.weight(.medium)).foregroundColor(.primary)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 104)
-            .background { ComposerOptionSurface() }
+            .compatBackground { ComposerOptionSurface() }
         }
-        .accessibilityIdentifier(title == String(localized: "照片") ? "chat.options.photos" : "chat.options.files")
+        .accessibilityIdentifier(title == L("照片") ? "chat.options.photos" : "chat.options.files")
     }
 
     private func optionRow(_ title: String, icon: String, value: String) -> some View {
@@ -115,12 +114,12 @@ struct ComposerOptionsSheet: View {
             AppSymbol(icon, size: 20).frame(width: 23)
             VStack(alignment: .leading, spacing: 5) {
                 Text(title).font(.body)
-                Text(value).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                Text(value).font(.subheadline).foregroundColor(.secondary).lineLimit(2)
             }
             Spacer(minLength: 8)
-            AppSymbol("chevron.right", size: 14).foregroundStyle(.secondary)
+            AppSymbol("chevron.right", size: 14).foregroundColor(.secondary)
         }
-        .foregroundStyle(.primary)
+        .foregroundColor(.primary)
         .padding(16)
         .contentShape(Rectangle())
     }
@@ -139,8 +138,8 @@ struct ComposerOptionsSheet: View {
                         InlineSelectionGroup(title: model.option.title, detail: detail(model.option),
                             isSelected: settings.modelID == model.id,
                             isExpanded: Binding(get: { expandedModelID == model.id }, set: { expandedModelID = $0 ? model.id : nil })) {
-                            Text(String(localized: "思考强度"))
-                                .font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                            Text(L("思考强度"))
+                                .font(.caption.weight(.medium)).foregroundColor(.secondary)
                             ForEach(model.reasoning) { option in
                                 InlineSelectionButton(title: option.title, detail: detail(option),
                                     isSelected: settings.modelID == model.id && settings.reasoningID == option.id) {
@@ -155,7 +154,7 @@ struct ComposerOptionsSheet: View {
             }
         }
         .disabled(isLoading || !canSelectModel)
-        .navigationTitle(String(localized: "模型"))
+        .navigationTitle(L("模型"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -172,7 +171,7 @@ struct ComposerOptionsSheet: View {
             }
         }
         .disabled(isLoading || !canSelectPermission)
-        .navigationTitle(String(localized: "权限"))
+        .navigationTitle(L("权限"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -186,7 +185,7 @@ struct ComposerOptionsSheet: View {
         Task { @MainActor in
             let accepted = await onApply()
             isApplying = false
-            if accepted { dismiss() } else { showsApplyError = true }
+            if accepted { presentationMode.wrappedValue.dismiss() } else { showsApplyError = true }
         }
     }
 }

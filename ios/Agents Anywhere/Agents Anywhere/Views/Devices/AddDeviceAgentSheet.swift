@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct AddDeviceAgentSheet: View {
-    @Bindable var model: DeviceAgentModel
-    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var model: DeviceAgentModel
+    @Environment(\.presentationMode) private var presentationMode
     @State private var configuration: Configuration?
     @State private var schemaError: String?
 
@@ -13,42 +13,42 @@ struct AddDeviceAgentSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if !model.connected {
-                        Label(String(localized: "设备或网络已离线，连接恢复后可继续。"), appSymbol: "wifi.slash")
-                            .font(.footnote).foregroundStyle(.secondary)
+                        Label(L("设备或网络已离线，连接恢复后可继续。"), appSymbol: "wifi.slash")
+                            .font(.footnote).foregroundColor(.secondary)
                     }
                     ForEach(model.addableTypes) { type in
                         agentCard(type)
                     }
                     if model.addableTypes.isEmpty && !model.isLoading {
                         Text(model.inventory.types.isEmpty
-                             ? String(localized: "尚未发现可用 Agent。在设备上安装并登录 Agent 后，重新发现即可添加。")
-                             : String(localized: "当前可用的 Agent 都已添加。安装其他 Agent 后，可以重新发现。"))
-                            .font(.subheadline).foregroundStyle(.secondary)
+                             ? L("尚未发现可用 Agent。在设备上安装并登录 Agent 后，重新发现即可添加。")
+                             : L("当前可用的 Agent 都已添加。安装其他 Agent 后，可以重新发现。"))
+                            .font(.subheadline).foregroundColor(.secondary)
                     }
                 }.padding(20)
             }
-            .navigationTitle(String(localized: "添加 Agent")).navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(L("添加 Agent")).navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { AgentRediscoveryButton(model: model) }
-                SheetCloseToolbar(disabled: model.busyID != nil) { dismiss() }
+                ToolbarItem(placement: .navigationBarLeading) { AgentRediscoveryButton(model: model) }
+                SheetCloseToolbar(disabled: model.busyID != nil) { presentationMode.wrappedValue.dismiss() }
             }
         }
         .appSheetPresentation(.compact)
-        .interactiveDismissDisabled(model.busyID != nil)
+        .compatInteractiveDismissDisabled(model.busyID != nil)
         .sheet(item: $configuration, onDismiss: model.dismissError) { item in
             RuntimeConfigurationSheet(type: item.type, schema: item.schema, suggestedName: suggestedName(item.type), canSave: model.connected) { name, config in
                 try await model.add(item.type, name: name, config: config, newInstance: true)
             }
         }
-        .alert(String(localized: "无法添加 Agent"), isPresented: Binding(
+        .compatAlert(L("无法添加 Agent"), isPresented: Binding(
             get: { configuration == nil && (schemaError != nil || model.error != nil) },
             set: { if !$0 { schemaError = nil; model.dismissError() } }
         )) {
-            Button(String(localized: "好"), role: .cancel) { schemaError = nil; model.dismissError() }
+            Button(L("好"), role: .cancel) { schemaError = nil; model.dismissError() }
         } message: { Text(schemaError ?? model.error ?? "") }
     }
 
@@ -56,20 +56,20 @@ struct AddDeviceAgentSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(type.displayName).font(.headline)
-                if type.recommended { Text(String(localized: "推荐")).font(.caption).foregroundStyle(.secondary) }
+                if type.recommended { Text(L("推荐")).font(.caption).foregroundColor(.secondary) }
                 Spacer()
             }
             if let description = type.reason ?? type.description, !description.isEmpty {
-                Text(description).font(.footnote).foregroundStyle(.secondary)
+                Text(description).font(.footnote).foregroundColor(.secondary)
             }
             HStack(spacing: 12) {
-                AppGlassButton(String(localized: "dashboard.pairDevice.quickAdd"), systemImage: "plus", style: .prominent,
+                AppGlassButton(L("dashboard.pairDevice.quickAdd"), systemImage: "plus", style: .prominent,
                     isLoading: model.busyID == type.id, disabled: !model.connected || model.busyID != nil) {
                     Task { try? await model.add(type, name: nil, config: [:]) }
                 }
-                AppGlassButton(String(localized: "dashboard.device.configure"), disabled: !model.connected || model.busyID != nil) { configure(type) }
+                AppGlassButton(L("dashboard.device.configure"), disabled: !model.connected || model.busyID != nil) { configure(type) }
             }
-        }.padding(16).background(.quaternary.opacity(0.45), in: .rect(cornerRadius: 18))
+        }.padding(16).background(RoundedRectangle(cornerRadius: 18).fill(Color(UIColor.quaternaryLabel).opacity(0.45)))
     }
 
     private func configure(_ type: V2RuntimeType) {

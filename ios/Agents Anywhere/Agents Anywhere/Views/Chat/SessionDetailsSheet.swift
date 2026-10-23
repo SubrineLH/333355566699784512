@@ -4,47 +4,47 @@ import UniformTypeIdentifiers
 struct SessionDetailsSheet: View {
     let chat: SessionChatModel
     let service: V2SessionDetailService
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     @State private var exportRequest: String?
     @State private var document: TimelineJSONDocument?
     @State private var showsExporter = false
     @State private var error: String?
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             List {
                 if let meta = chat.session.metadata {
-                    Section(String(localized: "会话")) {
-                        row(String(localized: "标题"), meta.title ?? String(localized: "未命名会话"))
-                        row(String(localized: "设备"), meta.connectorId)
-                        row(String(localized: "Agent"), meta.runtimeName ?? meta.runtime)
-                        row(String(localized: "Agent 类型"), meta.runtimeTypeDisplayName ?? meta.runtimeType ?? meta.runtime)
-                        row(String(localized: "状态"), (chat.session.runtime.state?.status ?? meta.status).displayName)
-                        row(String(localized: "dashboard.session.workspace"), meta.cwd ?? String(localized: "无"))
-                        row(String(localized: "接管"), meta.takeover ? String(localized: "已开启") : String(localized: "只读"))
+                    Section(L("会话")) {
+                        row(L("标题"), meta.title ?? L("未命名会话"))
+                        row(L("设备"), meta.connectorId)
+                        row(L("Agent"), meta.runtimeName ?? meta.runtime)
+                        row(L("Agent 类型"), meta.runtimeTypeDisplayName ?? meta.runtimeType ?? meta.runtime)
+                        row(L("状态"), (chat.session.runtime.state?.status ?? meta.status).displayName)
+                        row(L("dashboard.session.workspace"), meta.cwd ?? L("无"))
+                        row(L("接管"), meta.takeover ? L("已开启") : L("只读"))
                     }
-                    Section(String(localized: "标识与时间线")) {
-                        row(String(localized: "Session ID"), meta.id)
-                        row(String(localized: "外部 Session ID"), meta.externalSessionId ?? String(localized: "无"))
-                        row(String(localized: "已加载条目"), String(chat.session.timeline.count))
-                        row(String(localized: "待回应交互"), String(chat.session.notices.notices.filter { $0.isVisible && $0.notice.type == "interaction" }.count))
+                    Section(L("标识与时间线")) {
+                        row(L("Session ID"), meta.id)
+                        row(L("外部 Session ID"), meta.externalSessionId ?? L("无"))
+                        row(L("已加载条目"), String(chat.session.timeline.count))
+                        row(L("待回应交互"), String(chat.session.notices.notices.filter { $0.isVisible && $0.notice.type == "interaction" }.count))
                     }
                     Section {
-                        Button { exportRequest = "memory" } label: { Label(String(localized: "导出已加载时间线 JSON"), appSymbol: "square.and.arrow.up") }
+                        Button { exportRequest = "memory" } label: { Label(L("导出已加载时间线 JSON"), appSymbol: "square.and.arrow.up") }
                             .disabled(exportRequest != nil)
-                        Button { exportRequest = "remote" } label: { Label(String(localized: "导出服务器时间线 JSON"), appSymbol: "arrow.down.document") }
+                        Button { exportRequest = "remote" } label: { Label(L("导出服务器时间线 JSON"), appSymbol: "arrow.down.document") }
                             .disabled(exportRequest != nil || chat.session.network.availability == .offline)
                         if exportRequest != nil {
-                            HStack { ProgressView(); Text(String(localized: "正在准备导出…")); Spacer(); Button(String(localized: "取消")) { exportRequest = nil } }
+                            HStack { ProgressView(); Text(L("正在准备导出…")); Spacer(); Button(L("取消")) { exportRequest = nil } }
                         }
                     }
                 }
-                if let error { Section { Text(error).foregroundStyle(.secondary) } }
+                if let error { Section { Text(error).foregroundColor(.secondary) } }
             }
-            .navigationTitle(String(localized: "会话详情")).navigationBarTitleDisplayMode(.inline)
-            .toolbar { SheetCloseToolbar { dismiss() } }
+            .navigationTitle(L("会话详情")).navigationBarTitleDisplayMode(.inline)
+            .toolbar { SheetCloseToolbar { presentationMode.wrappedValue.dismiss() } }
         }
         .appSheetPresentation(.expanded)
-        .task(id: exportRequest) {
+        .compatTask(id: exportRequest) {
             guard let source = exportRequest, let meta = chat.session.metadata else { return }
             error = nil
             do {
@@ -69,7 +69,7 @@ struct SessionDetailsSheet: View {
         }
     }
     private func row(_ title: String, _ value: String) -> some View {
-        LabeledContent(title) { Text(value).textSelection(.enabled).font(.subheadline).multilineTextAlignment(.trailing) }
+        CompatLabeledContent(title) { Text(value).compatTextSelection().font(.subheadline).multilineTextAlignment(.trailing) }
     }
 }
 

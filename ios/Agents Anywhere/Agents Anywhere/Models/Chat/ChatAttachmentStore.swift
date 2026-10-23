@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Combine
 
 struct ChatMessageAttachment: Identifiable, Equatable {
     let id: String
@@ -9,16 +9,16 @@ struct ChatMessageAttachment: Identifiable, Equatable {
 
 /// Session/account-scoped metadata and small previews survive the optimistic
 /// bubble's replacement. Full uploaded files are never retained in this cache.
-@MainActor @Observable final class ChatAttachmentStore {
-    @Observable fileprivate final class Entry {
-        var content: V2AttachmentContent?
-        var previewData: Data?
+@MainActor final class ChatAttachmentStore: ObservableObject {
+    fileprivate final class Entry: ObservableObject {
+        @Published var content: V2AttachmentContent?
+        @Published var previewData: Data?
     }
-    @ObservationIgnored private var entries: [String: Entry] = [:]
-    @ObservationIgnored private var order: [String] = []
-    @ObservationIgnored private var sent: [String: [V2AttachmentContent]] = [:]
-    @ObservationIgnored private var sentOrder: [String] = []
-    @ObservationIgnored private let byteLimit: Int
+    private var entries: [String: Entry] = [:]
+    private var order: [String] = []
+    private var sent: [String: [V2AttachmentContent]] = [:]
+    private var sentOrder: [String] = []
+    private let byteLimit: Int
     init(byteLimit: Int = 16 * 1024 * 1024) { self.byteLimit = byteLimit }
 
     func remember(_ attachments: [ChatAttachment], clientID: String) {

@@ -18,8 +18,8 @@ struct WorkspaceFilePreviewSheet: View {
     @State private var isDownloading = false
     @State private var browserRequest = 0
     @State private var isOpeningBrowser = false
-    @State private var toasts = ChatToastStore()
-    @Environment(\.dismiss) private var dismiss
+    @StateObject private var toasts = ChatToastStore()
+    @Environment(\.presentationMode) private var presentationMode
     @Environment(\.openURL) private var openURL
     private var name: String { (path.replacingOccurrences(of: "\\", with: "/") as NSString).lastPathComponent }
     private var canRead: Bool {
@@ -27,47 +27,47 @@ struct WorkspaceFilePreviewSheet: View {
         return session.isValid && session.network.availability != .offline && session.metadata?.connectorStatus == .online
     }
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             ZStack {
                 if let url {
                     WorkspacePreviewWebView(url: url, onLoaded: { loading = false }, onFailure: {
                         loading = false; error = $0
-                    }, onClose: { dismiss() }, onExternal: { openURL($0) },
+                    }, onClose: { presentationMode.wrappedValue.dismiss() }, onExternal: { openURL($0) },
                         onDownload: { downloadedFile = $0 }, onDownloadFailure: downloadFailed,
                         onDownloading: { isDownloading = $0 }).id(url)
                 }
                 if let error {
-                    ContentUnavailableView {
-                        Label(String(localized: "无法预览文件"), appSymbol: "doc.badge.ellipsis")
-                    } description: { Text(error) } actions: { Button(String(localized: "重试")) { attempt += 1 }.disabled(!canRead) }
-                    .background(Color(uiColor: .systemBackground))
-                } else if loading { ProgressView(String(localized: "加载预览…")).padding(20).background(.regularMaterial, in: .rect(cornerRadius: 18)) }
+                    CompatContentUnavailable {
+                        Label(L("无法预览文件"), appSymbol: "doc.badge.ellipsis")
+                    } description: { Text(error) } actions: { Button(L("重试")) { attempt += 1 }.disabled(!canRead) }
+                    .background(Color(UIColor.systemBackground))
+                } else if loading { ProgressView(L("加载预览…")).padding(20).background(RoundedRectangle(cornerRadius: 18).fill(Color(UIColor.secondarySystemBackground))) }
             }
-            .navigationTitle(name.isEmpty ? String(localized: "文件预览") : name).navigationBarTitleDisplayMode(.inline)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !canRead { Text(String(localized: "设备或网络已离线，恢复连接后可重新加载。"))
-                    .font(.footnote).foregroundStyle(.secondary).padding(12).frame(maxWidth: .infinity).background(.regularMaterial) }
+            .navigationTitle(name.isEmpty ? L("文件预览") : name).navigationBarTitleDisplayMode(.inline)
+            .compatSafeAreaInset(edge: .bottom, spacing: 0) {
+                if !canRead { Text(L("设备或网络已离线，恢复连接后可重新加载。"))
+                    .font(.footnote).foregroundColor(.secondary).padding(12).frame(maxWidth: .infinity).background(Color(UIColor.secondarySystemBackground)) }
             }
             .toolbar {
-                if isDownloading { ToolbarItem(placement: .topBarLeading) { ProgressView().accessibilityLabel(String(localized: "正在下载")) } }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(String(localized: "重新加载"), appSymbol: "arrow.clockwise") { attempt += 1 }.disabled(!canRead || loading)
+                if isDownloading { ToolbarItem(placement: .navigationBarLeading) { ProgressView().accessibilityLabel(L("正在下载")) } }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(L("重新加载"), appSymbol: "arrow.clockwise") { attempt += 1 }.disabled(!canRead || loading)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     if isOpeningBrowser {
-                        ProgressView().accessibilityLabel(String(localized: "正在打开浏览器"))
+                        ProgressView().accessibilityLabel(L("正在打开浏览器"))
                     } else {
-                        Button(String(localized: "在浏览器中打开"), appSymbol: "arrow.up.right.square") {
+                        Button(L("在浏览器中打开"), appSymbol: "arrow.up.right.square") {
                             guard !isOpeningBrowser else { return }
                             isOpeningBrowser = true; browserRequest += 1
                         }.disabled(!canRead)
                     }
                 }
-                SheetCloseToolbar { dismiss() }
+                SheetCloseToolbar { presentationMode.wrappedValue.dismiss() }
             }
         }
         .appSheetPresentation(.expanded)
-        .overlay(alignment: .top) {
+        .compatOverlay(alignment: .top) {
             ChatErrorToasts(store: toasts, isRetrying: false, onRetry: { _ in })
         }
         .sheet(item: $downloadedFile) { file in
@@ -76,7 +76,7 @@ struct WorkspaceFilePreviewSheet: View {
                 if let error { downloadFailed(error) }
             }
         }
-        .task(id: "\(attempt):\(canRead)") {
+        .compatTask(id: "\(attempt):\(canRead)") {
             guard canRead else { loading = false; return }
             // Reload needs a fresh entry token; the previous token may be consumed.
             loading = true; error = nil; url = nil; isDownloading = false
@@ -87,7 +87,7 @@ struct WorkspaceFilePreviewSheet: View {
                 url = prepared
             } catch { if !Task.isCancelled { loading = false; self.error = error.localizedDescription } }
         }
-        .task(id: browserRequest) {
+        .compatTask(id: browserRequest) {
             guard isOpeningBrowser else { return }
             await openInBrowser()
         }
@@ -108,7 +108,7 @@ struct WorkspaceFilePreviewSheet: View {
             guard canRead else { return }
             let opened = await UIApplication.shared.open(prepared)
             if !opened, !Task.isCancelled {
-                browserFailed(String(localized: "无法打开浏览器，请重试。"))
+                browserFailed(L("无法打开浏览器，请重试。"))
             }
         } catch { if !Task.isCancelled { browserFailed(error.localizedDescription) } }
     }
@@ -159,7 +159,7 @@ private struct WorkspacePreviewWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { parent.onLoaded() }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { failed(error) }
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { failed(error) }
-        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { parent.onFailure(String(localized: "预览页面已退出，请重新加载。")) }
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { parent.onFailure(L("预览页面已退出，请重新加载。")) }
         func webViewDidClose(_ webView: WKWebView) { parent.onClose() }
         private func failed(_ error: Error) {
             if (error as? URLError)?.code != .cancelled { parent.onFailure(error.localizedDescription) }

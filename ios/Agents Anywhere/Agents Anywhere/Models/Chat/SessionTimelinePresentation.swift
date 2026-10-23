@@ -1,19 +1,19 @@
 import Foundation
-import Observation
+import Combine
 
-@MainActor @Observable
-final class ChatTimelineRowModel: Identifiable {
+@MainActor
+final class ChatTimelineRowModel: Identifiable, ObservableObject {
     let id: V2TimelineItemID
-    private(set) var value: V2TimelineItem
-    private(set) var structure: TimelineRowStructure
-    private(set) var text: String
-    private(set) var isRevealing = false
-    private(set) var layoutGeneration = 0
-    @ObservationIgnored private(set) var settlesAt: TimeInterval = 0
-    @ObservationIgnored private var hasFlushed = false
-    @ObservationIgnored private var entryCache: (cwd: String?, entry: TimelineEntryPresentation)?
+    @Published private(set) var value: V2TimelineItem
+    @Published private(set) var structure: TimelineRowStructure
+    @Published private(set) var text: String
+    @Published private(set) var isRevealing = false
+    @Published private(set) var layoutGeneration = 0
+    private(set) var settlesAt: TimeInterval = 0
+    private var hasFlushed = false
+    private var entryCache: (cwd: String?, entry: TimelineEntryPresentation)?
     /// False while a streaming batch withholds the final glyph of the received text.
-    @ObservationIgnored private var displaysFullText = false
+    private var displaysFullText = false
 
     init(_ value: V2TimelineItem, animate: Bool = false) {
         id = value.id; self.value = value
@@ -69,19 +69,19 @@ final class ChatTimelineRowModel: Identifiable {
 /// Receives full repository projections without exposing each transport frame to
 /// SwiftUI. Only flush() publishes rows. Received text waits in `pending` while
 /// the previous batch reveals; the next batch goes on screen when it ends.
-@MainActor @Observable
-final class SessionTimelinePresentation {
-    private(set) var rows: [ChatTimelineRowModel] = []
-    private(set) var pendingMessages: [V2PendingMessage] = []
-    private(set) var hasPresentedSnapshot = false
-    @ObservationIgnored private var rowsByID: [V2TimelineItemID: ChatTimelineRowModel] = [:]
-    @ObservationIgnored private var pending: [V2TimelineItem]?
-    @ObservationIgnored private var animatePending = false
-    @ObservationIgnored private var initialized = false
-    @ObservationIgnored private var lastConnection: V2SessionConnectionState = .inactive
-    @ObservationIgnored private var wake: AsyncStream<Void>.Continuation?
+@MainActor
+final class SessionTimelinePresentation: ObservableObject {
+    @Published private(set) var rows: [ChatTimelineRowModel] = []
+    @Published private(set) var pendingMessages: [V2PendingMessage] = []
+    @Published private(set) var hasPresentedSnapshot = false
+    private var rowsByID: [V2TimelineItemID: ChatTimelineRowModel] = [:]
+    private var pending: [V2TimelineItem]?
+    private var animatePending = false
+    private var initialized = false
+    private var lastConnection: V2SessionConnectionState = .inactive
+    private var wake: AsyncStream<Void>.Continuation?
     /// When the newest reveal batch ends and the buffer may publish again.
-    @ObservationIgnored private(set) var nextBatchAt: TimeInterval = 0
+    private(set) var nextBatchAt: TimeInterval = 0
 
     func presentOpening(_ items: [V2TimelineItem], pendingMessages: [V2PendingMessage]) {
         stage(items, animate: false)
@@ -104,7 +104,7 @@ final class SessionTimelinePresentation {
         pendingWasStaged = true
         wake?.yield(())
     }
-    @ObservationIgnored private var pendingWasStaged = false
+    private var pendingWasStaged = false
 
     func flush(now: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         if let pending {
@@ -163,7 +163,7 @@ final class SessionTimelinePresentation {
                         let wait = self.pending != nil ? self.nextBatchAt - now
                             : max(Self.minimumIdleWait, (self.rows.filter(\.isRevealing).map(\.settlesAt).min() ?? now) - now)
                         if wait > 0 {
-                            do { try await Task.sleep(for: .seconds(wait)) } catch { return }
+                            do { try await compatSleep(seconds: wait) } catch { return }
                         }
                         let current = ProcessInfo.processInfo.systemUptime
                         guard self.pending == nil || current >= self.nextBatchAt else { continue }

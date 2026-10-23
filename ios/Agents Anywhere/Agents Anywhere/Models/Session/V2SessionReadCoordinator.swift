@@ -6,7 +6,7 @@ import Foundation
 final class V2SessionReadCoordinator {
     var onChange: ((V2SessionID) -> Void)?
     private let send: (V2SessionID) async throws -> V2SessionMeta
-    private let sleep: (Duration) async throws -> Void
+    private let sleep: (TimeInterval) async throws -> Void
     private var records: [V2SessionID: Record] = [:]
     private var visibleSessionID: V2SessionID?
     private var isActive = true
@@ -14,7 +14,7 @@ final class V2SessionReadCoordinator {
     private var isValid = true
 
     init(send: @escaping (V2SessionID) async throws -> V2SessionMeta,
-         sleep: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }) {
+         sleep: @escaping (TimeInterval) async throws -> Void = { try await compatSleep(seconds: $0) }) {
         self.send = send
         self.sleep = sleep
     }
@@ -115,7 +115,7 @@ final class V2SessionReadCoordinator {
                 guard isActive, isOnline, visibleSessionID == record.id else { return }
                 // Read receipts are idempotent. Retry only while this session is
                 // visible; never acknowledge a departed session's unseen new turn.
-                do { try await sleep(.seconds(min(1 << min(attempt, 4), 15))) }
+                do { try await sleep(min(1 << min(attempt, 4), 15)) }
                 catch { return }
                 attempt += 1
             }

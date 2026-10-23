@@ -2,19 +2,19 @@ import SwiftUI
 
 struct AccountSettingsSheet: View {
     let appState: AppState
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     @AppStorage(AppAppearance.storageKey) private var appearanceValue = AppAppearance.system.rawValue
     @AppStorage(ProjectSidebarPreferences.sessionListKey) private var showsSessionList = false
     @AppStorage(ProjectSidebarPreferences.compactSessionListKey) private var compactSessionList = false
     @AppStorage(ReplyPresentation.plainFadeKey) private var plainFade = false
     @State private var confirmsSignOut = false
     @State private var signOutError: String?
-    @State private var toasts = ChatToastStore()
+    @StateObject private var toasts = ChatToastStore()
     @State private var drafts = AccountSettingsDrafts()
     @State private var confirmsDiscard = false
 
     var body: some View {
-        NavigationStack {
+        CompatPlainNavigationStack {
             List {
                 if let me = appState.me {
                     Section {
@@ -22,72 +22,72 @@ struct AccountSettingsSheet: View {
                             AccountAvatarView(displayName: me.accountLabel, source: appState.accountAvatarSource, size: 60)
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(me.accountLabel).font(.title3.weight(.semibold))
-                                if let email = me.email { Text(email).font(.subheadline).foregroundStyle(.secondary) }
-                                Text(me.role == .admin ? String(localized: "Administrator") : String(localized: "Member"))
-                                    .font(.caption).foregroundStyle(.secondary)
+                                if let email = me.email { Text(email).font(.subheadline).foregroundColor(.secondary) }
+                                Text(me.role == .admin ? L("Administrator") : L("Member"))
+                                    .font(.caption).foregroundColor(.secondary)
                             }
                             Spacer(minLength: 0)
                         }.padding(.vertical, 12)
-                    }.listRowSeparator(.hidden)
+                    }.compatListRowSeparator(.hidden)
 
-                    Section(String(localized: "Account")) {
+                    Section(L("Account")) {
                         NavigationLink { AccountIdentitySettingsView(mode: .nickname, draft: $drafts.nickname) } label: {
-                            SettingsRow(title: String(localized: "Nickname"), symbol: "person.text.rectangle", value: me.displayName)
+                            SettingsRow(title: L("Nickname"), symbol: "person.text.rectangle", value: me.displayName)
                         }
                         NavigationLink { AccountIdentitySettingsView(mode: .email, draft: $drafts.email) } label: {
-                            SettingsRow(title: String(localized: "Email"), symbol: "envelope", value: me.email)
+                            SettingsRow(title: L("Email"), symbol: "envelope", value: me.email)
                         }
                         NavigationLink { AvatarSettingsView(draft: $drafts.avatar) } label: {
-                            SettingsRow(title: String(localized: "Profile photo"), symbol: "person.crop.circle")
+                            SettingsRow(title: L("Profile photo"), symbol: "person.crop.circle")
                         }
                         NavigationLink { PasswordSettingsView(draft: $drafts.password) } label: {
-                            SettingsRow(title: String(localized: "Password"), symbol: "key")
+                            SettingsRow(title: L("Password"), symbol: "key")
                         }
                     }
                 }
 
-                Section(String(localized: "App")) {
+                Section(L("App")) {
                     NavigationLink { AppearanceSettingsView() } label: {
-                        SettingsRow(title: String(localized: "Appearance"), symbol: "circle.lefthalf.filled",
-                            value: String(localized: (AppAppearance(rawValue: appearanceValue) ?? .system).title))
+                        SettingsRow(title: L("Appearance"), symbol: "circle.lefthalf.filled",
+                            value: L((AppAppearance(rawValue: appearanceValue) ?? .system).title))
                     }
                     NavigationLink { SettingsLanguageView() } label: {
-                        SettingsRow(title: String(localized: "Language"), symbol: "globe", value: SettingsLanguageView.currentLanguage)
+                        SettingsRow(title: L("Language"), symbol: "globe", value: SettingsLanguageView.currentLanguage)
                     }
                     Toggle(isOn: Binding(
                         get: { !showsSessionList },
                         set: { showsSessionList = !$0 }
                     )) {
-                        Label(String(localized: "Project mode"), appSymbol: "folder")
+                        Label(L("Project mode"), appSymbol: "folder")
                             .labelStyle(.titleAndIcon)
-                    }.tint(.green)
+                    }.accentColor(.green)
                     Toggle(isOn: $compactSessionList) {
-                        Label(String(localized: "Single-line sessions"), appSymbol: "sidebar.left")
+                        Label(L("Single-line sessions"), appSymbol: "sidebar.left")
                             .labelStyle(.titleAndIcon)
                     }
-                    .tint(.green)
+                    .accentColor(.green)
                     .disabled(!showsSessionList)
                 }
                 revealAnimationSection
-                Section(String(localized: "Workspace")) {
+                Section(L("Workspace")) {
                     NavigationLink { SettingsServerView() } label: {
-                        SettingsRow(title: String(localized: "Server"), symbol: "server.rack", value: appState.serverURL?.host)
+                        SettingsRow(title: L("Server"), symbol: "server.rack", value: appState.serverURL?.host)
                     }
                 }
                 Section {
                     NavigationLink {
-                        PrivacyPolicyContent().settingsPage(String(localized: "privacyPolicy.title"))
+                        PrivacyPolicyContent().settingsPage(L("privacyPolicy.title"))
                     } label: {
-                        SettingsRow(title: String(localized: "privacyPolicy.title"), symbol: "hand.raised")
+                        SettingsRow(title: L("privacyPolicy.title"), symbol: "hand.raised")
                     }
                     NavigationLink { SettingsAboutView() } label: {
-                        SettingsRow(title: String(localized: "About"), symbol: "info.circle")
+                        SettingsRow(title: L("About"), symbol: "info.circle")
                     }
                 }
                 Section {
                     Button(role: .destructive) { confirmsSignOut = true } label: {
-                        SettingsRow(title: String(localized: "Sign out"), symbol: "rectangle.portrait.and.arrow.forward")
-                            .foregroundStyle(.red)
+                        SettingsRow(title: L("Sign out"), symbol: "rectangle.portrait.and.arrow.forward")
+                            .foregroundColor(.red)
                     }.disabled(appState.isAccountWorking)
                 } footer: {
                     Text("Agents Anywhere · \(SettingsAboutView.version)")
@@ -95,21 +95,21 @@ struct AccountSettingsSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle(String(localized: "Settings")).navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(L("Settings")).navigationBarTitleDisplayMode(.inline)
             .toolbar { SheetCloseToolbar(disabled: isWorking, action: close) }
-            .refreshable { _ = await appState.refreshAccount() }
-            .alert(String(localized: "Sign out?"), isPresented: $confirmsSignOut) {
-                Button(String(localized: "Cancel"), role: .cancel) {}
-                Button(String(localized: "Sign out"), role: .destructive, action: signOut)
+            .compatRefreshable { _ = await appState.refreshAccount() }
+            .compatAlert(L("Sign out?"), isPresented: $confirmsSignOut) {
+                Button(L("Cancel"), role: .cancel) {}
+                Button(L("Sign out"), role: .destructive, action: signOut)
             } message: {
-                Text(String(localized: "Your saved credentials will be removed from this device. You will need to sign in again to reconnect."))
+                Text(L("Your saved credentials will be removed from this device. You will need to sign in again to reconnect."))
             }
-            .alert(String(localized: "Could not sign out"), isPresented: Binding(get: { signOutError != nil }, set: { if !$0 { signOutError = nil } })) {
-                Button(String(localized: "OK"), role: .cancel) { signOutError = nil }
+            .compatAlert(L("Could not sign out"), isPresented: Binding(get: { signOutError != nil }, set: { if !$0 { signOutError = nil } })) {
+                Button(L("OK"), role: .cancel) { signOutError = nil }
             } message: { Text(signOutError ?? "") }
         }
-        .overlay(alignment: .top) { ChatErrorToasts(store: toasts, isRetrying: false, onRetry: { _ in }) }
-        .onChange(of: appState.accountError) { _, error in
+        .compatOverlay(alignment: .top) { ChatErrorToasts(store: toasts, isRetrying: false, onRetry: { _ in }) }
+        .compatOnChange(of: appState.accountError) { _, error in
             guard let error else { return }
             toasts.update(source: "account", failure: .init(kind: .rejected, message: error))
             appState.dismissAccountError()
@@ -117,10 +117,10 @@ struct AccountSettingsSheet: View {
         .environment(\.closeSettings, close)
         // Native sheet presentation can create a new hosting boundary on Mac.
         // Use the caller's store here and provide it to every settings subpage.
-        .environment(appState)
+        .environmentObject(appState)
         .appSheetPresentation(.expanded)
-        .interactiveDismissDisabled(drafts.hasChanges || isWorking)
-        .confirmDiscardChanges($confirmsDiscard) { dismiss() }
+        .compatInteractiveDismissDisabled(drafts.hasChanges || isWorking)
+        .confirmDiscardChanges($confirmsDiscard) { presentationMode.wrappedValue.dismiss() }
     }
 
     private var isWorking: Bool { appState.isAccountWorking || drafts.isWorking }
@@ -128,20 +128,20 @@ struct AccountSettingsSheet: View {
     private var revealAnimationSection: some View {
         Section {
             Toggle(isOn: Binding(get: { !plainFade }, set: { plainFade = !$0 })) {
-                Label(String(localized: "Reveal animation"), appSymbol: "sparkles").labelStyle(.titleAndIcon)
+                Label(L("Reveal animation"), appSymbol: "sparkles").labelStyle(.titleAndIcon)
             }
-            .tint(.green)
+            .accentColor(.green)
         } footer: {
-            Text(String(localized: "Off: new text fades in without the blur and rise."))
+            Text(L("Off: new text fades in without the blur and rise."))
         }
     }
     private func close() {
         guard !isWorking else { return }
-        if drafts.hasChanges { confirmsDiscard = true } else { dismiss() }
+        if drafts.hasChanges { confirmsDiscard = true } else { presentationMode.wrappedValue.dismiss() }
     }
 
     private func signOut() {
-        do { try appState.signOutAndDeleteCredentials(); dismiss() }
+        do { try appState.signOutAndDeleteCredentials(); presentationMode.wrappedValue.dismiss() }
         catch { signOutError = error.localizedDescription }
     }
 }

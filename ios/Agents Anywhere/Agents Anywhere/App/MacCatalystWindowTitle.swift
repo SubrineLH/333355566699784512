@@ -22,9 +22,9 @@ struct MacCatalystWindowTitle: View {
         switch appState.chatSelection {
         case .newSession:
             let draft = appState.nativeChatServices?.newSession
-            parts = [String(localized: "New session", locale: locale), draft?.connector?.name]
+            parts = [L("New session", locale: locale), draft?.connector?.name]
         case .device:
-            parts = [String(localized: "Device settings", locale: locale)]
+            parts = [L("Device settings", locale: locale)]
         case let .session(id):
             let session = appState.nativeChatServices?.sessionRepository.session(id: id).metadata
                 ?? appState.sessions.first { $0.id == id }
