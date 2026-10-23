@@ -275,7 +275,7 @@ private struct SidebarDrawerInteractive<
             .frame(width: screenSize.width, height: screenSize.height)
             .contentShape(Rectangle())
 #if canImport(UIKit)
-            .gesture(
+            .compatBackground {
                 SidebarDrawerPanGesture(
                     progress: motion.restingProgress,
                     edgeActivationWidth: configuration.edgeActivationWidth,
@@ -295,7 +295,7 @@ private struct SidebarDrawerInteractive<
                         )
                     }
                 )
-            )
+            }
 #else
             .simultaneousGesture(
                 drawerGesture(revealWidth: revealWidth),

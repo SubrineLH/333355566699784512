@@ -87,7 +87,7 @@ struct ProjectEditorSheet: View {
                         Text(connector.name).tag(connector.id).disabled(connector.status != .online)
                     }
                 }
-                .pickerStyle(.navigationLink)
+                .pickerStyle(.menu)
                 if device?.status != .online {
                     Text(L("请选择在线设备后创建项目。"))
                         .font(.footnote).foregroundColor(.secondary)
@@ -107,7 +107,7 @@ struct ProjectEditorSheet: View {
                     Text(draft.path).compatTextSelection()
                         .font(.system(.body, design: .monospaced))
                 } else {
-                    TextField(L("设备上的完整路径"), text: Binding(get: { draft.path }, set: updatePath), axis: .vertical)
+                    TextField(L("设备上的完整路径"), text: Binding(get: { draft.path }, set: updatePath))
                         .font(.system(.body, design: .monospaced))
                         .compatTextInputAutocapitalization(.never)
                         .compatAutocorrectionDisabled()

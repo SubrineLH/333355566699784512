@@ -99,6 +99,49 @@ struct SessionChatView: View, Equatable {
         .padding(.top, 8)
     }
 
+    private var headerSubtitle: String {
+        let runtime = session.metadata?.runtimeName ?? session.metadata?.runtime ?? L("Agent")
+        return [runtime, deviceName ?? session.metadata?.connectorId]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
+
+    @ToolbarContentBuilder
+    private var sessionToolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
+            Button { sheet = .files } label: { AppSymbol("folder") }
+                .accessibilityLabel(L("文件管理"))
+                .disabled(session.metadata?.cwd?.isEmpty != false)
+            Menu {
+                Button(L("会话详情与导出"), systemImage: "info.circle") { sheet = .details }
+                Button(L("复制会话 ID"), systemImage: "number") { UIPasteboard.general.string = session.id }
+            } label: { AppSymbol("ellipsis") }
+            .accessibilityLabel(L("会话菜单"))
+        }
+    }
+
+    @ViewBuilder
+    private func sheetContent(for destination: SessionSheet) -> some View {
+        switch destination {
+        case .notices:
+            SessionNoticesSheet(model: model, initialNoticeID: expandedNoticeID)
+        case .details:
+            SessionDetailsSheet(chat: model, service: detailService)
+        case .files:
+            if let meta = session.metadata, let cwd = meta.cwd {
+                WorkspaceFilesSheet(connectorId: meta.connectorId,
+                    deviceName: deviceName ?? meta.connectorId,
+                    workspace: V2DeviceWorkspace(path: cwd, name: L("会话文件"), sessionCount: 1, lastActiveAt: nil),
+                    service: fileService, session: session)
+            }
+        case .preview(let reference, let root):
+            if let meta = session.metadata {
+                WorkspaceFilePreviewSheet(connectorId: meta.connectorId, root: root ?? meta.cwd ?? ".", path: reference.path,
+                    service: fileService, session: session, location: reference)
+            }
+        }
+    }
+
     private func showNotice(_ id: String) {
         expandedNoticeID = id
         sheet = .notices
@@ -135,21 +178,9 @@ struct SessionChatView: View, Equatable {
                 .compatOverlay(alignment: .topLeading) { transientHeader }
         }
         .modifier(ChatPageToolbar(title: session.metadata?.title ?? L("会话"),
-            subtitle: [session.metadata?.runtimeName ?? session.metadata?.runtime ?? L("Agent"),
-                deviceName ?? session.metadata?.connectorId].compactMap { $0 }.joined(separator: " · "),
+            subtitle: headerSubtitle,
             status: model.headerStatus, alignsTitleLeading: true, onMenu: onMenu))
-        .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                Button { sheet = .files } label: { AppSymbol("folder") }
-                    .accessibilityLabel(L("文件管理"))
-                    .disabled(session.metadata?.cwd?.isEmpty != false)
-                Menu {
-                    Button(L("会话详情与导出"), systemImage: "info.circle") { sheet = .details }
-                    Button(L("复制会话 ID"), systemImage: "number") { UIPasteboard.general.string = session.id }
-                } label: { AppSymbol("ellipsis") }
-                .accessibilityLabel(L("会话菜单"))
-            }
-        }
+        .toolbar { sessionToolbar }
         .modifier(SessionTakeoverConfirmation(pending: $pendingTakeover, isDsh: model.isDsh) { enabled in
             model.error = nil
             if !(await model.setTakeover(enabled)), let error = model.takeoverError { model.error = error }
@@ -175,24 +206,7 @@ struct SessionChatView: View, Equatable {
             guard !Task.isCancelled else { return }
             await model.timeline.run(sessionID: session.id, repository: model.repository)
         }
-        .sheet(item: $sheet) { destination in
-            switch destination {
-            case .notices: SessionNoticesSheet(model: model, initialNoticeID: expandedNoticeID)
-            case .details: SessionDetailsSheet(chat: model, service: detailService)
-            case .files:
-                if let meta = session.metadata, let cwd = meta.cwd {
-                    WorkspaceFilesSheet(connectorId: meta.connectorId,
-                        deviceName: deviceName ?? meta.connectorId,
-                        workspace: V2DeviceWorkspace(path: cwd, name: L("会话文件"), sessionCount: 1, lastActiveAt: nil),
-                        service: fileService, session: session)
-                }
-            case .preview(let reference, let root):
-                if let meta = session.metadata {
-                    WorkspaceFilePreviewSheet(connectorId: meta.connectorId, root: root ?? meta.cwd ?? ".", path: reference.path,
-                        service: fileService, session: session, location: reference)
-                }
-            }
-        }
+        .sheet(item: $sheet) { destination in sheetContent(for: destination) }
         .environment(\.openURL, OpenURLAction { url in
             if let reference = SessionFileReference.reference(from: url) {
                 if session.isValid { sheet = .preview(reference) }

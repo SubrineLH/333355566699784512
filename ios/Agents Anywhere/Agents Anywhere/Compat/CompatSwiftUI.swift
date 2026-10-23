@@ -273,7 +273,13 @@ extension View {
         self
     }
 
-    /// Replaces `.compatContainerRelativeFrame(_:alignment:_:)` by falling back to the
+    /// Bare `.containerRelativeFrame(.horizontal)` form: no length closure, so
+    /// the proposed size is simply accepted.
+    func compatContainerRelativeFrame(_ axes: Axis.Set, alignment: Alignment = .center) -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
+    }
+
+    /// Replaces `.containerRelativeFrame(_:alignment:_:)` by falling back to the
     /// container width SwiftUI already proposes.
     func compatContainerRelativeFrame(
         _ axes: Axis.Set,
