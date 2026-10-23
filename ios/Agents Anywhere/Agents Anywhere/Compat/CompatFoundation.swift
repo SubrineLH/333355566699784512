@@ -77,19 +77,35 @@ func compatSleepUntil(_ deadline: TimeInterval) async throws {
 
 /// `Synchronization.Mutex` is iOS 18. This keeps the same `withLock`
 /// surface on top of `NSLock` so the call sites stay identical.
-final class CompatLocked<Value>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var value: Value
+///
+/// The value lives in a non-generic box on purpose: a generic class holding a
+/// `Value` makes the Swift 6.2 optimizer crash while specializing its implicit
+/// `deinit` (`isCallerAndCalleeLayoutConstraintsCompatible` in EarlyPerfInliner).
+/// A struct has no `deinit` to specialize, and the box is not generic, so
+/// nothing generic-shaped is left for the inliner to chew on.
+final class CompatLockedBox: @unchecked Sendable {
+    let lock = NSLock()
+    var value: Any
+
+    init(_ value: Any) {
+        self.value = value
+    }
+}
+
+struct CompatLocked<Value>: @unchecked Sendable {
+    private let box: CompatLockedBox
 
     init(_ value: Value) {
-        self.value = value
+        box = CompatLockedBox(value)
     }
 
     @discardableResult
     func withLock<Result>(_ body: (inout Value) throws -> Result) rethrows -> Result {
-        lock.lock()
-        defer { lock.unlock() }
-        return try body(&value)
+        box.lock.lock()
+        defer { box.lock.unlock() }
+        var current = box.value as! Value
+        defer { box.value = current }
+        return try body(&current)
     }
 }
 
