@@ -153,30 +153,7 @@ struct SessionChatView: View, Equatable {
         lhs.sessionIdentity === rhs.sessionIdentity && lhs.deviceName == rhs.deviceName
     }
     var body: some View {
-        GeometryReader { geometry in
-            Group {
-                if hasStartedLoading {
-                    ChatTimelineView(model: model,
-                        onAttachment: openAttachment, onFile: openFile)
-                } else {
-                    Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
-                .compatOverlay {
-                    if model.isOpeningReady && model.timeline.rows.isEmpty && model.timeline.pendingMessages.isEmpty {
-                        VStack(spacing: 12) {
-                            Text(L("在这里继续你的任务")).foregroundColor(.secondary)
-                        }.allowsHitTesting(false)
-                    }
-                }
-                .compatOverlay { if !model.isOpeningReady { openingMask } }
-                .compatSafeAreaInset(edge: .bottom, spacing: 0) {
-                    composerDock(availableHeight: geometry.size.height)
-                    // Native safe-area layout owns both the visible scroll
-                    // region and the dock's space; do not add a second margin.
-                }
-                .compatOverlay(alignment: .topLeading) { transientHeader }
-        }
+        chatSurface
         .modifier(ChatPageToolbar(title: session.metadata?.title ?? L("会话"),
             subtitle: headerSubtitle,
             status: model.headerStatus, alignsTitleLeading: true, onMenu: onMenu))
@@ -215,21 +192,36 @@ struct SessionChatView: View, Equatable {
             return ["https", "http", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
         })
         .quickLookPreview($previewURL)
+        .modifier(SessionToastSync(model: model, toasts: toasts))
         .compatOnChange(of: previewURL) { _, url in if url == nil { cleanPreview() } }
         .onDisappear { if previewURL == nil { cleanPreview() } }
-        .compatOnChange(of: session.failure, initial: true) { _, failure in
-            toasts.update(source: "session", failure: failure, canRetry: failure?.kind != .authentication)
-        }
-        .compatOnChange(of: model.error, initial: true) { _, message in
-            toasts.update(source: "operation", failure: message.map { V2ClientFailure(kind: .rejected, message: $0) })
-        }
-        .compatOnChange(of: model.commandFailure) { _, feedback in
-            // Each command failure is new, even when its text repeats a dismissed one.
-            toasts.update(source: "command", failure: nil)
-            toasts.update(source: "command", failure: feedback.map { V2ClientFailure(kind: .rejected, message: $0.message ?? "") }, title: feedback?.title)
-        }
-        .compatOnChange(of: model.openingError, initial: true) { _, message in
-            toasts.update(source: "opening", failure: message.map { V2ClientFailure(kind: .unavailable, message: $0) })
+    }
+
+    /// The scroll surface plus its three overlays. Hoisted because the inline
+    /// tree pushed `body` past the type-checker's budget.
+    private var chatSurface: some View {
+        GeometryReader { geometry in
+            Group {
+                if hasStartedLoading {
+                    ChatTimelineView(model: model, onAttachment: openAttachment, onFile: openFile)
+                } else {
+                    Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .compatOverlay {
+                if model.isOpeningReady && model.timeline.rows.isEmpty && model.timeline.pendingMessages.isEmpty {
+                    VStack(spacing: 12) {
+                        Text(L("在这里继续你的任务")).foregroundColor(.secondary)
+                    }.allowsHitTesting(false)
+                }
+            }
+            .compatOverlay { if !model.isOpeningReady { openingMask } }
+            .compatSafeAreaInset(edge: .bottom, spacing: 0) {
+                composerDock(availableHeight: geometry.size.height)
+                // Native safe-area layout owns both the visible scroll region
+                // and the dock's space; do not add a second margin.
+            }
+            .compatOverlay(alignment: .topLeading) { transientHeader }
         }
     }
 
@@ -322,5 +314,31 @@ private struct CommandSuccessToast: View {
             try? await compatSleep(seconds: 4)
             if !Task.isCancelled { onDismiss() }
         }
+    }
+}
+
+/// Mirrors every failure source into the shared toast store.
+private struct SessionToastSync: ViewModifier {
+    let model: SessionChatModel
+    let toasts: ChatToastStore
+
+    func body(content: Content) -> some View {
+        content
+            .compatOnChange(of: model.session.failure, initial: true) { _, failure in
+                toasts.update(source: "session", failure: failure, canRetry: failure?.kind != .authentication)
+            }
+            .compatOnChange(of: model.error, initial: true) { _, message in
+                toasts.update(source: "operation", failure: message.map { V2ClientFailure(kind: .rejected, message: $0) })
+            }
+            .compatOnChange(of: model.commandFailure) { _, feedback in
+                // Each command failure is new, even when its text repeats a dismissed one.
+                toasts.update(source: "command", failure: nil)
+                toasts.update(source: "command",
+                    failure: feedback.map { V2ClientFailure(kind: .rejected, message: $0.message ?? "") },
+                    title: feedback?.title)
+            }
+            .compatOnChange(of: model.openingError, initial: true) { _, message in
+                toasts.update(source: "opening", failure: message.map { V2ClientFailure(kind: .unavailable, message: $0) })
+            }
     }
 }
