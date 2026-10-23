@@ -46,7 +46,7 @@ struct SessionTurnReviewFooter: View, Equatable {
                         Text("−\(review.deletions)").foregroundColor(.red)
                         AppSymbol("chevron.right", size: 10)
                     }
-                    .font(.footnote).monospacedDigit().lineLimit(1)
+                    .font(.footnote).compatMonospacedDigit().lineLimit(1)
                     .frame(minHeight: 44).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain).foregroundColor(.secondary)
@@ -92,7 +92,7 @@ private struct SessionTurnReviewSheet: View {
                                         .lineLimit(2).truncationMode(.middle).frame(maxWidth: .infinity, alignment: .leading)
                                     Text("+\(file.additions)").foregroundColor(.green)
                                     Text("−\(file.deletions)").foregroundColor(.red)
-                                }.font(.caption).monospacedDigit().padding(12).frame(minHeight: 44).contentShape(Rectangle())
+                                }.font(.caption).compatMonospacedDigit().padding(12).frame(minHeight: 44).contentShape(Rectangle())
                             }.buttonStyle(.plain)
                             if expanded.contains(file.id) {
                                 HStack {

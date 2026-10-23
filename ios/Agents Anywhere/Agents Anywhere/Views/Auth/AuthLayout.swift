@@ -42,8 +42,8 @@ struct AuthScreen<Content: View>: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            if showsCancel {
-                SheetCloseToolbar(action: onCancel)
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if showsCancel { SheetCloseToolbar(action: onCancel) } else { EmptyView() }
             }
         }
     }

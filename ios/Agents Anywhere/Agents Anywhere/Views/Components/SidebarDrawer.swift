@@ -13,7 +13,7 @@ struct SidebarDrawerConfiguration: Sendable {
     let sidebarClosedScale: CGFloat
     let sidebarOverlayOpacity: CGFloat
     let contentOverlayOpacity: CGFloat
-    let sidebarHeaderEdgeEffectStyle: ScrollEdgeEffectStyle
+    let sidebarHeaderEdgeEffectStyle: CompatScrollEdgeEffectStyle
 
     init(
         revealFraction: CGFloat = 0.75,
@@ -21,7 +21,7 @@ struct SidebarDrawerConfiguration: Sendable {
         sidebarClosedScale: CGFloat = 0.95,
         sidebarOverlayOpacity: CGFloat = 0.5,
         contentOverlayOpacity: CGFloat = 0.14,
-        sidebarHeaderEdgeEffectStyle: ScrollEdgeEffectStyle = .soft
+        sidebarHeaderEdgeEffectStyle: CompatScrollEdgeEffectStyle = .soft
     ) {
         self.revealFraction = revealFraction
         self.edgeActivationWidth = edgeActivationWidth
@@ -493,15 +493,21 @@ private struct SidebarDrawerInteractive<
             }
             completion()
         } else {
+            // `withAnimation(_:completionCriteria:_:completion:)` and the
+            // `Spring` value are iOS 17; the iOS 13 spring carries the same
+            // parameters and the completion fires after the same duration.
+            let duration = 0.42
             withAnimation(
                 .interpolatingSpring(
-                    Spring(response: 0.34, dampingRatio: 0.9),
+                    mass: 1,
+                    stiffness: 180,
+                    damping: 18,
                     initialVelocity: initialVelocity
-                ),
-                completionCriteria: .removed
+                )
             ) {
                 motion.move(to: target)
-            } completion: {
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
                 completion()
             }
         }
@@ -518,7 +524,7 @@ private struct SidebarDrawerNativeSplitView<
     private let sidebarHeader: (EdgeInsets) -> SidebarHeader
     private let sidebarContent: (EdgeInsets) -> SidebarContent
     private let mainContent: (EdgeInsets) -> MainContent
-    private let sidebarHeaderEdgeEffectStyle: ScrollEdgeEffectStyle
+    private let sidebarHeaderEdgeEffectStyle: CompatScrollEdgeEffectStyle
 
     @State private var columnVisibility: CompatColumnVisibility
     @State private var isAnimating = false
@@ -527,7 +533,7 @@ private struct SidebarDrawerNativeSplitView<
 
     init(
         isOpen: Binding<Bool>,
-        sidebarHeaderEdgeEffectStyle: ScrollEdgeEffectStyle,
+        sidebarHeaderEdgeEffectStyle: CompatScrollEdgeEffectStyle,
         sidebarHeader: @escaping (EdgeInsets) -> SidebarHeader,
         sidebarContent: @escaping (EdgeInsets) -> SidebarContent,
         mainContent: @escaping (EdgeInsets) -> MainContent
@@ -550,7 +556,7 @@ private struct SidebarDrawerNativeSplitView<
                     header: sidebarHeader(safeAreaInsets),
                     content: sidebarContent(safeAreaInsets)
                 )
-                .compatToolbarRemoving( .sidebarToggle)
+                .compatToolbarRemoving(.sidebarToggle)
             }
             .compatToolbarVisibility(.hidden, for: .navigationBar)
             .compatSplitColumnWidth(min: 240, ideal: 300, max: 360)
@@ -608,7 +614,7 @@ private struct SidebarDrawerNativeSplitView<
 }
 
 private struct SidebarDrawerNativeSidebar<Header: View, Content: View>: View {
-    let edgeEffectStyle: ScrollEdgeEffectStyle
+    let edgeEffectStyle: CompatScrollEdgeEffectStyle
     let header: Header
     let content: Content
 
@@ -616,7 +622,7 @@ private struct SidebarDrawerNativeSidebar<Header: View, Content: View>: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .compatScrollEdgeEffectStyle(edgeEffectStyle, for: .top)
-            .safeAreaBar(edge: .top, spacing: 0) {
+            .compatSafeAreaBar(edge: .top, spacing: 0) {
                 SidebarDrawerHeaderBar(
                     safeAreaInsets: EdgeInsets(),
                     header: header
@@ -642,7 +648,7 @@ private struct SidebarDrawerHeaderBar<Header: View>: View {
 private struct SidebarDrawerSidebar<Header: View, Content: View>: View {
     let width: CGFloat
     let safeAreaInsets: EdgeInsets
-    let edgeEffectStyle: ScrollEdgeEffectStyle
+    let edgeEffectStyle: CompatScrollEdgeEffectStyle
     let header: Header
     let content: Content
 
@@ -650,7 +656,7 @@ private struct SidebarDrawerSidebar<Header: View, Content: View>: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .compatScrollEdgeEffectStyle(edgeEffectStyle, for: .top)
-            .safeAreaBar(edge: .top, spacing: 0) {
+            .compatSafeAreaBar(edge: .top, spacing: 0) {
                 SidebarDrawerHeaderBar(
                     safeAreaInsets: safeAreaInsets,
                     header: header
@@ -679,15 +685,17 @@ private struct SidebarDrawerMainCard<Content: View>: View {
             // this moving card's intersection with the window.
             .ignoresSafeArea()
             .frame(width: size.width, height: size.height)
-            .background(drawerSystemBackground, in: screenShape)
+            .compatBackground(drawerSystemBackground, in: screenShape)
             .clipShape(screenShape)
             .contentShape(screenShape)
     }
 }
 
 private enum SidebarDrawerCardShape {
-    static func shape(isFullyClosed: Bool) -> ConcentricRectangle {
-        ConcentricRectangle(corners: isFullyClosed ? .fixed(0) : .concentric)
+    // `ConcentricRectangle` is iOS 26; a continuous rounded rectangle keeps
+    // the same silhouette on iOS 14.
+    static func shape(isFullyClosed: Bool) -> CompatShape {
+        CompatShape.rect(cornerRadius: isFullyClosed ? 0 : 24, style: .continuous)
     }
 }
 

@@ -186,7 +186,7 @@ struct DeviceManagementView: View {
                 if connector.status == .online {
                     AppSymbol("checkmark.circle.fill", size: 15).foregroundColor(.green)
                 } else {
-                    Circle().fill(.secondary.opacity(0.4)).frame(width: 9, height: 9).frame(width: 15)
+                    Circle().fill(Color.secondary.opacity(0.4)).frame(width: 9, height: 9).frame(width: 15)
                 }
                 Text(connectionDescription)
             }

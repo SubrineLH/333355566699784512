@@ -41,7 +41,7 @@ final class ComposerTextView: UITextView {
 
     override var keyCommands: [UIKeyCommand]? {
         let send = UIKeyCommand(title: L("发送"), action: #selector(sendWithCommandReturn), input: "\r", modifierFlags: .command)
-        send.wantsPriorityOverSystemBehavior = true
+        if #available(iOS 15.0, *) { send.wantsPriorityOverSystemBehavior = true }
         return (super.keyCommands ?? []) + [send]
     }
 
@@ -102,15 +102,8 @@ struct NativeComposerEditor: UIViewRepresentable {
         }
     }
 
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: ComposerTextView, context: Context) -> CGSize? {
-        guard let width = proposal.width, width > 0 else { return nil }
-        let measured = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude)).height
-        let minimum = ceil(uiView.font?.lineHeight ?? 24)
-        let height = min(maximumHeight, max(minimum, ceil(measured)))
-        let shouldScroll = measured > maximumHeight + 1
-        if uiView.isScrollEnabled != shouldScroll { uiView.isScrollEnabled = shouldScroll }
-        return CGSize(width: width, height: height)
-    }
+    // `sizeThatFits(_:uiView:context:)` is iOS 16, so the editor leans on the
+    // text view's own intrinsic height inside a `.frame(maxHeight:)` instead.
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 

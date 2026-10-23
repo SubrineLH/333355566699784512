@@ -7,7 +7,7 @@ struct NewSessionSubmission {
     let pending: V2PendingMessage
     init(project: V2Project, runtime: V2DeviceRuntime, text: String, attachments: [ChatAttachment]) {
         let id = "local:" + UUID().uuidString
-        let now = Date().ISO8601Format()
+        let now = compatISO8601(Date())
         session = V2SessionMeta(id: id, connectorId: project.connectorId, projectId: project.id,
             runtime: runtime.runtimeType, runtimeId: runtime.id, runtimeType: runtime.runtimeType,
             runtimeName: runtime.name, runtimeTypeDisplayName: runtime.typeDisplayName,

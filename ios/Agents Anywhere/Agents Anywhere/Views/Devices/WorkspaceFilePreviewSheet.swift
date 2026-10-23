@@ -49,7 +49,9 @@ struct WorkspaceFilePreviewSheet: View {
                     .font(.footnote).foregroundColor(.secondary).padding(12).frame(maxWidth: .infinity).background(Color(UIColor.secondarySystemBackground)) }
             }
             .toolbar {
-                if isDownloading { ToolbarItem(placement: .navigationBarLeading) { ProgressView().accessibilityLabel(L("正在下载")) } }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if isDownloading { ProgressView() } else { EmptyView() }
+                }
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(L("重新加载"), appSymbol: "arrow.clockwise") { attempt += 1 }.disabled(!canRead || loading)
                 }
@@ -167,20 +169,22 @@ private struct WorkspacePreviewWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard let target = action.request.url else { decisionHandler(.cancel); return }
             let scheme = target.scheme?.lowercased() ?? ""
-            if ["about", "blob", "data"].contains(scheme) { decisionHandler(action.shouldPerformDownload ? .download : .allow); return }
+            // `WKNavigationActionPolicy.download` and `shouldPerformDownload` are
+            // iOS 14.5, so anything that cannot render inline goes to Safari
+            // instead of WebKit's download pipeline.
+            if ["about", "blob", "data"].contains(scheme) { decisionHandler(.cancel); return }
             guard ["http", "https"].contains(scheme) else { decisionHandler(.cancel); return }
             if target.scheme == parent.url.scheme && target.host == parent.url.host && target.port == parent.url.port {
-                decisionHandler(action.shouldPerformDownload ? .download : .allow)
+                decisionHandler(.allow)
             } else {
                 decisionHandler(.cancel)
                 if action.navigationType == .linkActivated { parent.onExternal(target) }
             }
         }
         func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-            decisionHandler(response.canShowMIMEType ? .allow : .download)
+            if response.canShowMIMEType { decisionHandler(.allow) }
+            else { decisionHandler(.cancel); if let url = response.response.url { parent.onExternal(url) } }
         }
-        func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) { downloads.attach(download) }
-        func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) { downloads.attach(download) }
         func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
             if let url = action.request.url, ["http", "https"].contains(url.scheme ?? "") { parent.onExternal(url) }
             return nil

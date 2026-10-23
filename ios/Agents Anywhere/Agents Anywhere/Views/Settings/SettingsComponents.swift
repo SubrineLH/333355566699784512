@@ -46,7 +46,7 @@ struct SettingsLanguageView: View {
     var body: some View {
         List {
             Section {
-                CompatLabeledContent(L("Current language"), value: Self.currentLanguage)
+                CompatLabeledRow(L("Current language"), value: Self.currentLanguage)
                 Button(L("Open iOS Settings")) {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }
@@ -65,7 +65,7 @@ struct SettingsServerView: View {
     var body: some View {
         List {
             Section(L("Connection")) {
-                CompatLabeledContent(L("Status"), value: appState.isServerConnected ? L("Connected") : L("Offline"))
+                CompatLabeledRow(L("Status"), value: appState.isServerConnected ? L("Connected") : L("Offline"))
                 if let url = appState.serverURL {
                     Text(url.absoluteString).font(Font.system(.callout, design: .monospaced)).compatTextSelection()
                     Button(L("Copy server address"), appSymbol: "doc.on.doc") {
@@ -84,8 +84,8 @@ struct SettingsAboutView: View {
     var body: some View {
         List {
             Section {
-                CompatLabeledContent(L("Version"), value: Self.version)
-                CompatLabeledContent(L("Build"), value: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—")
+                CompatLabeledRow(L("Version"), value: Self.version)
+                CompatLabeledRow(L("Build"), value: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—")
             }
             Section {
                 NavigationLink {

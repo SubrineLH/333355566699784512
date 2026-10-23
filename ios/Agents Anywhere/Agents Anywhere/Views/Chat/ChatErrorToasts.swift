@@ -22,7 +22,7 @@ struct ChatErrorToasts: View {
                                     Text(item.title).font(.subheadline.weight(.medium)).lineLimit(1)
                                     Spacer(minLength: 0)
                                     if store.items.count > 1 {
-                                        Text("\(index + 1)/\(store.items.count)").font(.caption2).monospacedDigit().foregroundColor(.secondary)
+                                        Text("\(index + 1)/\(store.items.count)").font(.caption2).compatMonospacedDigit().foregroundColor(.secondary)
                                     }
                                     Button { store.dismiss(item.id) } label: {
                                         AppSymbol("xmark", size: 11).frame(width: 44, height: 44)

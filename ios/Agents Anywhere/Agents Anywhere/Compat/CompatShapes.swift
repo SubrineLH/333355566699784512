@@ -68,7 +68,7 @@ extension View {
     }
 
     /// Replaces `.background(_:in:)` (iOS 15) with a clipped fill.
-    func compatBackground<S: ShapeStyle>(_ style: S, in shape: CompatShape) -> some View {
+    func compatBackground<S: ShapeStyle, Sh: Shape>(_ style: S, in shape: Sh) -> some View {
         background(CompatShapeBackground(style: style, shape: shape))
     }
 }

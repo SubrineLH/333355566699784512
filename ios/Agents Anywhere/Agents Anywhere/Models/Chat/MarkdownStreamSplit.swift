@@ -82,7 +82,7 @@ nonisolated enum MarkdownStreamSplit {
 /// appearance so completed blocks keep their identity across batches.
 nonisolated struct MarkdownParseState: Sendable {
     var prefixText = ""
-    var blocks: [MarkdownBlockSnapshot] = []
+    var blocks: [CompatMarkdownBlock] = []
     var nextID = 0
 
     /// Whether `text` still starts with the prefix these blocks were parsed from.

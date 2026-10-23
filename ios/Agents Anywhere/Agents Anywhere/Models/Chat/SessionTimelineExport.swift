@@ -16,7 +16,7 @@ struct SessionTimelineExport: Encodable {
         self.items = items.sorted { ($0.orderSeq, $0.updatedSeq, $0.id) < ($1.orderSeq, $1.updatedSeq, $1.id) }.map(\.raw)
         self.notices = notices.map(\.raw)
         self.nextSeq = nextSeq; self.hasMore = hasMore; self.serverTime = serverTime
-        exportedAt = Date().ISO8601Format()
+        exportedAt = compatISO8601(Date())
     }
     func encoded() throws -> Data {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]

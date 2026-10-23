@@ -92,7 +92,7 @@ nonisolated struct URLSessionHTTPTransport: HTTPTransport {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
         try Task.checkCancellation()
-        let (file, response) = try await urlSession.download(for: request, delegate: DownloadRedirectPolicy(origin: serverURL))
+        let (file, response) = try await compatDownload(request, policy: DownloadRedirectPolicy(origin: serverURL))
         do {
             try Task.checkCancellation()
             guard let http = response as? HTTPURLResponse else { throw HTTPError.invalidResponse }

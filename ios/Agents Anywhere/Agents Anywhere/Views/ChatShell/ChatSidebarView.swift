@@ -190,8 +190,8 @@ struct ChatSidebarListMenu<Filters: View>: View {
         } label: {
             Label(L("列表选项"), appSymbol: "ellipsis")
         }
-        .menuStyle(.button)
-        .menuIndicator(.hidden)
+        .menuStyle(.borderlessButton)
+        .compatMenuIndicator(.hidden)
         .modifier(ChatSidebarIconControlStyle())
     }
 }
@@ -214,7 +214,7 @@ struct ChatSidebarHeaderView: View {
         AAWordmark(fontSize: 24)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .padding(.horizontal, 18)
-            .containerCornerOffset(.horizontal, sizeToFit: true)
+            .padding(.horizontal, 18)
     }
 }
 

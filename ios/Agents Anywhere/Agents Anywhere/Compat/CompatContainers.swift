@@ -96,6 +96,17 @@ extension View {
 /// recompute a countdown, so a `Timer` publisher is enough. Passing `until`
 /// stops the tick once the deadline passes, which is what the original
 /// `NoticeExpiryClock` schedule did by ending its date sequence.
+extension View {
+    /// `mask(alignment:_:)` is iOS 15.
+    func compatMask<Mask: View>(@ViewBuilder _ mask: () -> Mask) -> some View {
+        self.mask(mask())
+    }
+}
+
+extension View {
+    /// `mask(alignment:_:)` is iOS 15.
+}
+
 struct CompatTimelineView<Content: View>: View {
     let content: (Date) -> Content
 

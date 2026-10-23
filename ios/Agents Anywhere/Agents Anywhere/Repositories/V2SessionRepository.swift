@@ -498,7 +498,7 @@ final class V2SessionRepository {
                     entry.connection = .reconnecting
                     self.emit(entry, persist: false)
                     attempt += 1
-                    do { try await self.sleep(min(1 << min(attempt - 1, 4), 15)) }
+                    do { try await self.sleep(compatBackoff(attempt: attempt - 1, base: 1, cap: 15)) }
                     catch { return }
                 }
             }

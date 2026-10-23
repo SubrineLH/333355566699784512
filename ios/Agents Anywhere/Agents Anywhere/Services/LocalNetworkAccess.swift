@@ -27,7 +27,9 @@ enum LocalNetworkAccessError: LocalizedError {
         connection.stateUpdateHandler = { [weak self] state in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.denied = self.denied || connection.currentPath?.unsatisfiedReason == .localNetworkDenied
+                if #available(iOS 14.2, *) {
+                    self.denied = self.denied || connection.currentPath?.unsatisfiedReason == .localNetworkDenied
+                }
                 switch state {
                 case .ready: self.finish(.success(true))
                 case .failed(let error): self.finish(.failure(self.denied ? LocalNetworkAccessError.denied : error))

@@ -294,9 +294,11 @@ extension View {
     }
 
     /// Replaces `.compatToolbarBackground(_:for:)`.
-    func compatToolbarBackground<S: ShapeStyle>(_ style: S, for bar: CompatToolbarPlacement) -> some View {
+    func compatToolbarBackground(_ background: CompatToolbarBackground, for bar: CompatToolbarPlacement) -> some View {
         self
     }
+
+    func compatMenuIndicator(_ visibility: CompatVisibility) -> some View { self }
 
     /// Replaces `.compatToolbarRemoving()`, which only affects iOS 16 split views.
     func compatToolbarRemoving(_ placement: CompatToolbarPlacement) -> some View {
@@ -320,9 +322,31 @@ extension View {
 }
 
 enum CompatScrollDismissMode { case immediately, interactively, never }
-enum CompatToolbarPlacement { case navigationBar, tabBar, bottomBar }
+enum CompatToolbarPlacement { case navigationBar, tabBar, bottomBar, sidebarToggle }
+
+enum CompatToolbarBackground {
+    case hidden, visible, color(Color)
+
+    static var automatic: CompatToolbarBackground { .visible }
+}
 enum CompatSymbolEffect { case bounce, pulse, variableColor }
-enum CompatSensoryFeedback { case success, warning, error, selection, impact }
+/// Mirrors `SensoryFeedback`, whose cases the call sites still spell out.
+struct CompatSensoryFeedback: Equatable {
+    enum Flexibility: Equatable { case rigid, soft }
+    let kind: String
+
+    static let success = CompatSensoryFeedback(kind: "success")
+    static let warning = CompatSensoryFeedback(kind: "warning")
+    static let error = CompatSensoryFeedback(kind: "error")
+    static let selection = CompatSensoryFeedback(kind: "selection")
+    static let impact = CompatSensoryFeedback(kind: "impact")
+
+    static func impact(flexibility: Flexibility, intensity: Double) -> CompatSensoryFeedback {
+        _ = flexibility
+        _ = intensity
+        return .impact
+    }
+}
 enum CompatContentTransition { case identity, opacity, numericText, interpolate }
 
 private extension View {
@@ -340,6 +364,13 @@ private extension View {
     }
 }
 
+/// Mirrors `ScrollEdgeEffectStyle`. Since no effect is drawn on iOS 14 the
+/// value only has to exist for the call sites to type-check.
+enum CompatScrollEdgeEffectStyle {
+    case soft
+    case hard
+}
+
 enum CompatKeyboard {
     static func dismiss() {
         UIApplication.shared.sendAction(
@@ -351,7 +382,9 @@ enum CompatKeyboard {
 // MARK: - Effcetera effects that only exist on newer systems
 
 extension View {
-    /// Replaces the iOS 26 scroll edge effect family.
+    /// Replaces the iOS 26 scroll edge effect family. iOS 14 has no edge
+    /// effects, so the style is dropped and the call site stays readable.
+    func compatScrollEdgeEffectStyle(_ style: CompatScrollEdgeEffectStyle, for edge: CompatVerticalEdge) -> some View { self }
     func compatScrollEdgeEffectStyle() -> some View { self }
     func compatScrollEdgeEffectHidden(_ hidden: Bool = true) -> some View { self }
 }
@@ -363,6 +396,11 @@ struct CompatContentUnavailableView: View {
     let title: String
     let systemImage: String
     let description: String?
+
+    init(_ title: String, appSymbol: String) {
+        self.init(title, systemImage: appSymbol, description: nil)
+    }
+
 
     init(_ title: String, systemImage: String, description: String? = nil) {
         self.title = title
@@ -410,13 +448,34 @@ struct CompatLabeledContent<Label: View, Content: View>: View {
 
 extension CompatLabeledContent where Label == Text {
     init(_ label: String, @ViewBuilder content: () -> Content) {
-        self.init(content: content) { Text(label) }
+        self.init(content: content, label: { Text(label) })
     }
 
     init(_ label: String, value: String) {
         self.init(content: { Text(value) }) { Text(label) }
     }
 }
+
+/// Concrete two-string row. A dedicated type keeps type inference trivial at
+/// the call sites, which the generic form could not give the type checker.
+struct CompatLabeledRow: View {
+    let title: String
+    let value: String
+
+    init(_ title: String, value: String) {
+        self.title = title
+        self.value = value
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+            Spacer(minLength: 12)
+            Text(value).foregroundColor(.secondary)
+        }
+    }
+}
+
 
 /// Counterpart of `ContentUnavailableView`'s builder form, which takes an
 /// arbitrary label, description and action row.

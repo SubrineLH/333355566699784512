@@ -10,10 +10,11 @@ struct SessionTakeoverConfirmation: ViewModifier {
     func body(content: Content) -> some View {
         content.compatAlert(pending == true ? L("开启接管？") : L("关闭接管？"), isPresented: Binding(
             get: { pending != nil }, set: { if !$0 { pending = nil } }),
-            presenting: pending) { enabled in
+            ) {
+                let enabled = pending ?? false
                 Button(enabled ? L("开启接管") : L("关闭接管")) { Task { await onConfirm(enabled) } }
                 Button(L("取消"), role: .cancel) {}
-            } message: { enabled in
+            } message: {
                 if isDsh {
                     Text(enabled ? L("DSH 现可实时同步（Beta）Agents Anywhere。启用接管即可发送消息。") : L("关闭后会话回到只读模式。"))
                 } else {

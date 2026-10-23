@@ -30,7 +30,7 @@ struct SessionInteractionCard: View {
                     } label: {
                         VStack(spacing: 2) {
                             Text(L("展开"))
-                            if let page { Text(page).font(.caption2).monospacedDigit() }
+                            if let page { Text(page).font(.caption2).compatMonospacedDigit() }
                         }.font(.caption).frame(minWidth: 44, minHeight: 44)
                     }.buttonStyle(.plain)
                 }

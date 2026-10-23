@@ -222,7 +222,7 @@ private struct UnderlinedTextField: View {
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
     var textContentType: UITextContentType? = nil
-    var submitLabel: SubmitLabel = .done
+    var submitLabel: CompatSubmitLabel = .done
     var onSubmit: () -> Void = {}
 
     var body: some View {

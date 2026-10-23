@@ -115,7 +115,7 @@ final class V2SessionReadCoordinator {
                 guard isActive, isOnline, visibleSessionID == record.id else { return }
                 // Read receipts are idempotent. Retry only while this session is
                 // visible; never acknowledge a departed session's unseen new turn.
-                do { try await sleep(min(1 << min(attempt, 4), 15)) }
+                do { try await sleep(compatBackoff(attempt: attempt, base: 1, cap: 15)) }
                 catch { return }
                 attempt += 1
             }

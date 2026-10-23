@@ -122,9 +122,8 @@ struct ChatComposerDock: View {
             for item in items {
                 do {
                     guard let data = try await item.loadTransferable(type: Data.self) else { continue }
-                    let type = item.supportedContentTypes.first ?? .jpeg
-                    await append(name: "Photo-\(UUID().uuidString.prefix(8)).\(type.preferredFilenameExtension ?? "jpg")",
-                           data: data, mediaType: type.preferredMIMEType ?? "image/jpeg")
+                    await append(name: "Photo-\(UUID().uuidString.prefix(8)).jpg",
+                           data: data, mediaType: "image/jpeg")
                 } catch { attachmentError = error.localizedDescription }
             }
         }

@@ -20,6 +20,11 @@ extension View {
     func compatTextSelection() -> some View { self }
 
     /// Replaces `View.compatMonospaced()`, which only exists on iOS 16+.
+    /// `View.monospacedDigit()` is iOS 15; `Font.monospacedDigit()` is iOS 13.
+    func compatMonospacedDigit() -> some View { self }
+
+    /// `View.monospacedDigit()` is iOS 15.
+
     func compatMonospaced() -> some View {
         font(.system(.callout, design: .monospaced))
     }

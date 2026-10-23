@@ -41,12 +41,12 @@ struct ComposerOptionsSheet: View {
                         Button(L("重新加载")) { Task { await onReload() } }
                     }
                     VStack(spacing: 0) {
-                        NavigationLink(value: Page.models) {
+                        Button { path.append(Page.models) } label: {
                             optionRow(L("dashboard.new.modelAndReasoning"), icon: "sparkles", value: settings.modelLabel)
                         }
                         .disabled(isLoading || !canSelectModel || settings.catalog.models.isEmpty)
                         Divider().padding(.leading, 52)
-                        NavigationLink(value: Page.permissions) {
+                        Button { path.append(Page.permissions) } label: {
                             optionRow(L("权限"), icon: "checkmark.shield", value: settings.permission?.title ?? L("默认"))
                         }
                         .disabled(isLoading || !canSelectPermission || settings.catalog.permissions.isEmpty)

@@ -356,7 +356,7 @@ private struct WorkspaceEntryRow: View {
                     .foregroundColor(.primary)
                     .lineLimit(1)
                 if let size = entry.size, entry.isFile {
-                    Text(ByteCountFormatStyle(style: .file).format(Int64(size)))
+                    Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

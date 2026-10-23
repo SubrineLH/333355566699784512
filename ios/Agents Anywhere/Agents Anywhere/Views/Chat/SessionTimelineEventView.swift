@@ -163,7 +163,7 @@ private struct TimelineMarkerShimmer: ViewModifier {
 private struct ActiveMarkerShimmer: ViewModifier {
     @State private var sweeps = false
     func body(content: Content) -> some View {
-        content.mask {
+        content.compatMask {
             GeometryReader { geometry in
                 LinearGradient(stops: [
                     .init(color: .white.opacity(0.45), location: 0),
@@ -270,7 +270,7 @@ struct TimelineCodePanel: View {
                                 ChatSelectableText(text: line.text.isEmpty ? " " : line.text).fixedSize(horizontal: true, vertical: false)
                                 Spacer(minLength: 0)
                             }
-                            .font(.system(.caption, design: .monospaced)).monospacedDigit()
+                            .font(.system(.caption, design: .monospaced)).compatMonospacedDigit()
                             .padding(.horizontal, 12).frame(minHeight: rowHeight)
                             .foregroundColor(diffColor(line.kind)).background(diffColor(line.kind).opacity(line.kind == .add || line.kind == .delete ? 0.09 : 0))
                         }

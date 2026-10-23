@@ -32,7 +32,7 @@ struct ProjectEditorSheet: View {
             Form {
                 Section(L("运行设备")) {
                     if draft.original != nil {
-                        CompatLabeledContent(L("设备"), value: device?.name ?? draft.connectorID)
+                        CompatLabeledRow(L("设备"), value: device?.name ?? draft.connectorID)
                     } else {
                         Picker(L("设备"), selection: Binding(get: { draft.connectorID }, set: { draft.selectDevice($0) })) {
                             Text(L("选择设备")).tag("")

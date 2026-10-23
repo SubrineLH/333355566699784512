@@ -8,6 +8,9 @@ enum AppSheetSize: Equatable {
 extension View {
     /// Short pickers keep their chosen height across native navigation pushes.
     /// Long forms opt into the large system detent without replacing the sheet.
+    ///
+    /// iOS 14 has no detents, so every sheet is a full-height card; `size` stays
+    /// part of the API for the call sites that still pass it.
     func appSheetPresentation(_ size: AppSheetSize) -> some View {
         modifier(AppSheetPresentation(size: size))
     }
@@ -15,19 +18,8 @@ extension View {
 
 private struct AppSheetPresentation: ViewModifier {
     let size: AppSheetSize
-    @State private var compactDetent: PresentationDetent = .medium
-
-    private var selection: Binding<PresentationDetent> {
-        Binding(
-            get: { size == .expanded ? .large : compactDetent },
-            set: { if size == .compact { compactDetent = $0 } }
-        )
-    }
 
     func body(content: Content) -> some View {
-        content
-            .compatPresentationDetents(size == .expanded ? [.large] : [.medium, .large], selection: selection)
-            .presentationContentInteraction(.scrolls)
-            .presentationDragIndicator(.visible)
+        content.presentationDragIndicator(.visible)
     }
 }

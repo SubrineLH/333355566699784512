@@ -252,7 +252,7 @@ struct DeviceSessionList: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 if let date = activityDate(session) {
-                    Text(date, format: .dateTime.month(.abbreviated).day())
+                    Text(compatFormatted(date, dateStyle: .medium, timeStyle: .none))
                         .font(.caption.monospacedDigit()).foregroundColor(.secondary)
                 }
             }
@@ -306,7 +306,7 @@ struct DeviceSessionSelectionDock: View {
     let onSubmit: () -> Void
     var body: some View {
         HStack(spacing: 12) {
-            Text("\(count) selected").font(.subheadline).monospacedDigit()
+            Text("\(count) selected").font(.subheadline).compatMonospacedDigit()
             Spacer(minLength: 0)
             Button(L("Cancel"), action: onCancel).disabled(isWorking)
             AppGlassButton(restores ? L("dashboard.device.unarchiveSelected") : L("dashboard.device.archiveSelected"), systemImage: restores ? "tray.and.arrow.up" : "archivebox",

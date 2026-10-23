@@ -37,7 +37,8 @@ nonisolated struct SessionFileReference: Hashable, Identifiable {
         }
         guard scheme == nil || ["file", "sandbox"].contains(scheme ?? ""),
               url.host == nil || url.host?.isEmpty == true || url.host == "localhost" else { return nil }
-        let raw = scheme == nil ? url.relativeString : url.path(percentEncoded: true) + (url.fragment(percentEncoded: true).map { "#" + $0 } ?? "")
+        let encodedPath = url.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? url.path
+        let raw = scheme == nil ? url.relativeString : encodedPath + (url.fragment.map { "#" + $0 } ?? "")
         guard !raw.hasPrefix("#"), !raw.hasPrefix("//"), !raw.isEmpty else { return nil }
         return parse(raw.removingPercentEncoding ?? raw)
     }

@@ -140,7 +140,7 @@ final class AppState: ObservableObject {
                     restoreConnectionError = error.localizedDescription
                     // A transport failure retains the profile, route and cache.
                     // Backoff performs reads only; pending sends are never replayed.
-                    do { try await compatSleep(seconds: min(5 * (1 << min(attempt, 3)), 30)) } catch { return }
+                    do { try await compatSleep(seconds: compatBackoff(attempt: attempt, base: 5, cap: 30)) } catch { return }
                     attempt += 1
                 }
             }
@@ -731,7 +731,7 @@ final class AppState: ObservableObject {
             }
 
             do {
-                try await compatSleep(seconds: min(1 << min(attempt, 4), 15))
+                try await compatSleep(seconds: compatBackoff(attempt: attempt, base: 1, cap: 15))
                 attempt += 1
             } catch {
                 return

@@ -33,7 +33,7 @@ struct AccountIdentitySettingsView: View {
             if mode == .email {
                 if draft.text == draft.initialText && !draft.initialText.isEmpty {
                     Section {
-                        CompatLabeledContent(L("Email status"),
+                        CompatLabeledRow(L("Email status"),
                             value: appState.me?.emailVerified == true ? L("Verified") : L("Not verified"))
                     }
                 }

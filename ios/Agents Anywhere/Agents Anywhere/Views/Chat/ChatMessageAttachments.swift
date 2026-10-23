@@ -112,7 +112,7 @@ struct ChatComposerAttachment: View {
         .compatOverlay(alignment: .topTrailing) {
             Button(action: onRemove) {
                 AppSymbol("xmark.circle.fill").compatSymbolRenderingMode()
-                    .foregroundColor(.white, .black.opacity(0.7)).font(.system(size: 19))
+                    .foregroundColor(.white).font(.system(size: 19))
                     .frame(width: 44, height: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).offset(x: 9, y: -9).accessibilityLabel(L("移除 \(attachment.name)"))
         }

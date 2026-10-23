@@ -59,12 +59,10 @@ struct AccountSettingsSheet: View {
                         set: { showsSessionList = !$0 }
                     )) {
                         Label(L("Project mode"), appSymbol: "folder")
-                            .labelStyle(.titleAndIcon)
-                    }.accentColor(.green)
+                                                }.accentColor(.green)
                     Toggle(isOn: $compactSessionList) {
                         Label(L("Single-line sessions"), appSymbol: "sidebar.left")
-                            .labelStyle(.titleAndIcon)
-                    }
+                                                }
                     .accentColor(.green)
                     .disabled(!showsSessionList)
                 }
@@ -128,7 +126,7 @@ struct AccountSettingsSheet: View {
     private var revealAnimationSection: some View {
         Section {
             Toggle(isOn: Binding(get: { !plainFade }, set: { plainFade = !$0 })) {
-                Label(L("Reveal animation"), appSymbol: "sparkles").labelStyle(.titleAndIcon)
+                Label(L("Reveal animation"), appSymbol: "sparkles")
             }
             .accentColor(.green)
         } footer: {

@@ -56,7 +56,7 @@ struct SheetSaveToolbar: ToolbarContent {
 
 extension View {
     func confirmDiscardChanges(_ isPresented: Binding<Bool>, onDiscard: @escaping () -> Void) -> some View {
-        confirmationDialog(L("Discard unsaved changes?"), isPresented: isPresented, titleVisibility: .visible) {
+        compatConfirmationDialog(L("Discard unsaved changes?"), isPresented: isPresented, titleVisibility: .visible) {
             Button(L("Discard changes"), role: .destructive, action: onDiscard)
             Button(L("Keep editing"), role: .cancel) {}
         }
